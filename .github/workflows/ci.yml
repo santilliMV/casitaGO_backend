@@ -41,6 +41,6 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: >
           ./mvnw -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
-          -Dsonar.organization=santiago
+          -Dsonar.organization=santillimv
           -Dsonar.projectKey=santilliMV_casitaGO_backend
           -Dsonar.host.url=https://sonarcloud.io
