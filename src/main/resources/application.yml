@@ -1,0 +1,37 @@
+spring:
+  application:
+    name: marketplace-alojamientos
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/marketplace}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+
+  jpa:
+    hibernate:
+      # El esquema se crea manualmente ejecutando database/schema.sql en el
+      # SQL Editor de Supabase (no usamos herramienta de migraciones).
+      # "validate" hace que Hibernate compare las entidades @Entity contra
+      # las tablas ya existentes y falle rápido si no coinciden, en vez de
+      # alterar el esquema por su cuenta.
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+server:
+  port: ${PORT:8080}
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:cambia-este-valor-en-produccion-minimo-32-caracteres}
+    expiration-minutes: ${JWT_EXPIRATION_MINUTES:60}
+
+springdoc:
+  swagger-ui:
+    path: /docs
+
+logging:
+  level:
+    com.inversioneslr.marketplace: DEBUG
