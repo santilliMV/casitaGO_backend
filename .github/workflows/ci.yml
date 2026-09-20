@@ -16,16 +16,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          # SonarQube Cloud necesita el historial completo para un análisis correcto,
-          # no solo el último commit.
           fetch-depth: 0
 
       - name: Configurar JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
+
+      - name: Dar permiso de ejecución a mvnw
+        run: chmod +x mvnw
 
       - name: Cachear análisis de SonarQube Cloud
         uses: actions/cache@v4
@@ -38,11 +39,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        # TODO: reemplaza TU_ORGANIZACION y TU_PROJECT_KEY por los valores exactos
-        # que te muestra SonarQube Cloud al crear el proyecto (paso "Set up" -> "With GitHub Actions").
         run: >
           ./mvnw -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
-          -Dsonar.organization=TU_ORGANIZACION
-          -Dsonar.projectKey=TU_PROJECT_KEY
+          -Dsonar.organization=santiago
+          -Dsonar.projectKey=santilliMV_casitaGO_backend
           -Dsonar.host.url=https://sonarcloud.io
-          
