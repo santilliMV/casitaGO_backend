@@ -1,9 +1,6 @@
 package co.edu.unbosque.casitago.service;
 
 import co.edu.unbosque.casitago.common.audit.AuditService;
-import co.edu.unbosque.casitago.common.exception.BadRequestException;
-import co.edu.unbosque.casitago.common.exception.ConflictException;
-import co.edu.unbosque.casitago.common.exception.ResourceNotFoundException;
 import co.edu.unbosque.casitago.config.JwtService;
 import co.edu.unbosque.casitago.dto.*;
 import co.edu.unbosque.casitago.entity.CodigoRecuperacion;
@@ -74,35 +71,37 @@ class AuthServiceTest {
 
         PerfilResponse response = authService.registrar(request);
 
-        assertThat(response.nombre()).isEqualTo("Ana Ríos");
-        assertThat(response.correo()).isEqualTo("ana@example.com");
-        assertThat(response.rol()).isEqualTo(RolUsuario.HUESPED);
-        assertThat(response.activo()).isTrue();
+        assertThat(response.getNombre()).isEqualTo("Ana Ríos");
+        assertThat(response.getCorreo()).isEqualTo("ana@example.com");
+        assertThat(response.getRol()).isEqualTo(RolUsuario.HUESPED);
+        assertThat(response.isActivo()).isTrue();
 
         ArgumentCaptor<Usuario> captor = ArgumentCaptor.forClass(Usuario.class);
         verify(usuarioRepository).save(captor.capture());
-        assertThat(captor.getValue().getPassword()).isEqualTo("hash-seguro"); // nunca la contraseña en texto plano
+        assertThat(captor.getValue().getPassword()).isEqualTo("hash-seguro");
 
         verify(auditService).registrar(any(UUID.class), eq("usuarios"), eq("REGISTRO"), eq("EXITOSO"), any());
     }
 
     @Test
-    void registrar_correoYaExistente_lanzaConflictException() {
+    void registrar_correoYaExistente_lanzaExcepcion() {
         RegistroRequest request = new RegistroRequest("Ana", "ana@example.com", "clave12345", RolUsuario.HUESPED);
         when(usuarioRepository.existsByCorreo("ana@example.com")).thenReturn(true);
 
         assertThatThrownBy(() -> authService.registrar(request))
-                .isInstanceOf(ConflictException.class);
+                .isInstanceOf(RuntimeException.class);
 
         verify(usuarioRepository, never()).save(any());
     }
 
     @Test
-    void registrar_conRolAdministrador_esRechazadoPorElDto() {
-        // RF-01: ADMINISTRADOR no puede autoasignarse; esto lo valida el propio record.
-        assertThatThrownBy(() ->
-                new RegistroRequest("X", "x@example.com", "clave12345", RolUsuario.ADMINISTRADOR))
-                .isInstanceOf(IllegalArgumentException.class);
+    void registrar_conRolAdministrador_lanzaExcepcion() {
+        RegistroRequest request = new RegistroRequest("X", "x@example.com", "clave12345", RolUsuario.ADMINISTRADOR);
+
+        assertThatThrownBy(() -> authService.registrar(request))
+                .isInstanceOf(RuntimeException.class);
+
+        verify(usuarioRepository, never()).save(any());
     }
 
     // ---------- RF-02: login ----------
@@ -119,18 +118,13 @@ class AuthServiceTest {
 
         LoginResponse response = authService.login(new LoginRequest("ana@example.com", "clave12345"));
 
-        assertThat(response.token()).isEqualTo("jwt-generado");
-        assertThat(response.expiraEnSegundos()).isEqualTo(1800L);
-        assertThat(response.usuarioId()).isEqualTo(id);
-        assertThat(response.rol()).isEqualTo(RolUsuario.HUESPED);
+        assertThat(response.getToken()).isEqualTo("jwt-generado");
+        assertThat(response.getExpiraEnSegundos()).isEqualTo(1800L);
+        assertThat(response.getUsuarioId()).isEqualTo(id);
+        assertThat(response.getRol()).isEqualTo(RolUsuario.HUESPED);
 
         verify(auditService).registrar(id, "usuarios", "LOGIN", "EXITOSO");
     }
-
-    // Nota: credenciales inválidas / cuenta desactivada no se prueban aquí porque
-    // esa lógica vive en AuthenticationManager/DaoAuthenticationProvider (Spring
-    // Security), no en AuthService; se prueban con BadCredentialsException /
-    // DisabledException mapeadas en GlobalExceptionHandler.
 
     // ---------- RF-03: recuperación de contraseña ----------
 
@@ -153,7 +147,6 @@ class AuthServiceTest {
     void solicitarRecuperacion_usuarioNoExiste_noGeneraNiEnviaNada() {
         when(usuarioRepository.findByCorreo("fantasma@example.com")).thenReturn(Optional.empty());
 
-        // No debe lanzar excepción (evita revelar qué correos existen).
         authService.solicitarRecuperacion(new SolicitarRecuperacionRequest("fantasma@example.com"));
 
         verifyNoInteractions(codigoRecuperacionRepository, emailService);
@@ -177,7 +170,7 @@ class AuthServiceTest {
     }
 
     @Test
-    void confirmarRecuperacion_codigoExpirado_lanzaBadRequestException() {
+    void confirmarRecuperacion_codigoExpirado_lanzaExcepcion() {
         Usuario usuario = usuarioConId(UUID.randomUUID(), "Ana", "ana@example.com", RolUsuario.HUESPED);
         CodigoRecuperacion codigoVencido = new CodigoRecuperacion(usuario, "123456", OffsetDateTime.now().minusMinutes(1));
 
@@ -187,18 +180,18 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> authService.confirmarRecuperacion(
                 new ConfirmarRecuperacionRequest("ana@example.com", "123456", "nuevaClave123")))
-                .isInstanceOf(BadRequestException.class);
+                .isInstanceOf(RuntimeException.class);
 
         verify(passwordEncoder, never()).encode(anyString());
     }
 
     @Test
-    void confirmarRecuperacion_correoInexistente_lanzaBadRequestException() {
+    void confirmarRecuperacion_correoInexistente_lanzaExcepcion() {
         when(usuarioRepository.findByCorreo("fantasma@example.com")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> authService.confirmarRecuperacion(
                 new ConfirmarRecuperacionRequest("fantasma@example.com", "123456", "nuevaClave123")))
-                .isInstanceOf(BadRequestException.class);
+                .isInstanceOf(RuntimeException.class);
     }
 
     // ---------- RF-04: consultar perfil ----------
@@ -211,17 +204,17 @@ class AuthServiceTest {
 
         PerfilResponse response = authService.obtenerPerfil(id);
 
-        assertThat(response.id()).isEqualTo(id);
-        assertThat(response.rol()).isEqualTo(RolUsuario.ANFITRION);
+        assertThat(response.getId()).isEqualTo(id);
+        assertThat(response.getRol()).isEqualTo(RolUsuario.ANFITRION);
     }
 
     @Test
-    void obtenerPerfil_usuarioNoExiste_lanzaResourceNotFoundException() {
+    void obtenerPerfil_usuarioNoExiste_lanzaExcepcion() {
         UUID id = UUID.randomUUID();
         when(usuarioRepository.findById(id)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> authService.obtenerPerfil(id))
-                .isInstanceOf(ResourceNotFoundException.class);
+                .isInstanceOf(RuntimeException.class);
     }
 
     // ---------- RF-05: actualizar perfil ----------
@@ -236,12 +229,12 @@ class AuthServiceTest {
         PerfilResponse response = authService.actualizarPerfil(id,
                 new ActualizarPerfilRequest("Ana Ríos", "ana.nueva@example.com"));
 
-        assertThat(response.nombre()).isEqualTo("Ana Ríos");
-        assertThat(response.correo()).isEqualTo("ana.nueva@example.com");
+        assertThat(response.getNombre()).isEqualTo("Ana Ríos");
+        assertThat(response.getCorreo()).isEqualTo("ana.nueva@example.com");
     }
 
     @Test
-    void actualizarPerfil_correoYaUsadoPorOtroUsuario_lanzaConflictException() {
+    void actualizarPerfil_correoYaUsadoPorOtroUsuario_lanzaExcepcion() {
         UUID id = UUID.randomUUID();
         Usuario usuario = usuarioConId(id, "Ana", "ana@example.com", RolUsuario.HUESPED);
         when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
@@ -249,7 +242,7 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> authService.actualizarPerfil(id,
                 new ActualizarPerfilRequest("Ana Ríos", "ocupado@example.com")))
-                .isInstanceOf(ConflictException.class);
+                .isInstanceOf(RuntimeException.class);
     }
 
     @Test
@@ -261,7 +254,7 @@ class AuthServiceTest {
         PerfilResponse response = authService.actualizarPerfil(id,
                 new ActualizarPerfilRequest("Ana Actualizada", "ana@example.com"));
 
-        assertThat(response.nombre()).isEqualTo("Ana Actualizada");
+        assertThat(response.getNombre()).isEqualTo("Ana Actualizada");
         verify(usuarioRepository, never()).existsByCorreo(anyString());
     }
 
@@ -275,7 +268,7 @@ class AuthServiceTest {
 
         PerfilResponse response = authService.cambiarEstadoCuenta(id, new CambiarEstadoCuentaRequest(false));
 
-        assertThat(response.activo()).isFalse();
+        assertThat(response.isActivo()).isFalse();
         assertThat(usuario.isEnabled()).isFalse();
         verify(auditService).registrar(id, "usuarios", "DESACTIVAR_CUENTA", "EXITOSO");
     }
@@ -289,7 +282,7 @@ class AuthServiceTest {
 
         PerfilResponse response = authService.cambiarEstadoCuenta(id, new CambiarEstadoCuentaRequest(true));
 
-        assertThat(response.activo()).isTrue();
+        assertThat(response.isActivo()).isTrue();
         verify(auditService).registrar(id, "usuarios", "ACTIVAR_CUENTA", "EXITOSO");
     }
 }

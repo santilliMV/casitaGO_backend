@@ -1,7 +1,5 @@
 package co.edu.unbosque.casitago.controller;
 
-import co.edu.unbosque.casitago.common.exception.BadRequestException;
-import co.edu.unbosque.casitago.common.exception.ConflictException;
 import co.edu.unbosque.casitago.config.JwtService;
 import co.edu.unbosque.casitago.dto.*;
 import co.edu.unbosque.casitago.entity.RolUsuario;
@@ -23,16 +21,11 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-/**
- * Slice test del controller: solo levanta la capa web (no seguridad real,
- * no base de datos). addFilters = false porque aquí se prueba el contrato
- * HTTP de AuthController, no JwtAuthenticationFilter (eso ya lo cubre
- * JwtServiceTest a nivel de la lógica de validación del token).
- */
 @WebMvcTest(controllers = AuthController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class AuthControllerTest {
@@ -46,9 +39,6 @@ class AuthControllerTest {
     @MockitoBean
     private AuthService authService;
 
-    // JwtAuthenticationFilter (bean tipo Filter) se instancia igual dentro del
-    // contexto del slice aunque addFilters=false impida que se ejecute — por
-    // eso sus dependencias también deben mockearse aquí, o el contexto no levanta.
     @MockitoBean
     private JwtService jwtService;
 
@@ -57,9 +47,6 @@ class AuthControllerTest {
 
     @AfterEach
     void limpiarContextoDeSeguridad() {
-        // SecurityContextHolder es un ThreadLocal estático: si no se limpia,
-        // la autenticación de un test podría "filtrarse" al siguiente que
-        // corra en el mismo hilo.
         SecurityContextHolder.clearContext();
     }
 
@@ -89,8 +76,6 @@ class AuthControllerTest {
 
     @Test
     void registrar_correoInvalido_devuelve400() throws Exception {
-        // Salta la validación del record (correo con formato inválido) y llega
-        // como JSON crudo para probar el @Valid + GlobalExceptionHandler.
         String body = """
                 {"nombre":"Ana","correo":"no-es-un-correo","contrasena":"clave12345","rol":"HUESPED"}
                 """;
@@ -98,14 +83,13 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/auth/registro")
                         .contentType("application/json")
                         .content(body))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400));
+                .andExpect(status().isBadRequest());
     }
 
     @Test
-    void registrar_correoDuplicado_devuelve409() throws Exception {
+    void registrar_correoDuplicado_devuelve400() throws Exception {
         when(authService.registrar(any(RegistroRequest.class)))
-                .thenThrow(new ConflictException("Ya existe una cuenta registrada con ese correo."));
+                .thenThrow(new RuntimeException("Ya existe una cuenta registrada con ese correo."));
 
         String body = objectMapper.writeValueAsString(
                 new RegistroRequest("Ana", "ana@example.com", "clave12345", RolUsuario.HUESPED));
@@ -113,7 +97,8 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/auth/registro")
                         .contentType("application/json")
                         .content(body))
-                .andExpect(status().isConflict());
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Ya existe una cuenta registrada con ese correo."));
     }
 
     // ---------- RF-02 ----------
@@ -132,21 +117,34 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.token").value("jwt-token"));
     }
 
+    @Test
+    void login_credencialesInvalidas_devuelve400() throws Exception {
+        when(authService.login(any(LoginRequest.class)))
+                .thenThrow(new RuntimeException("mal"));
+
+        String body = objectMapper.writeValueAsString(new LoginRequest("ana@example.com", "incorrecta"));
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType("application/json")
+                        .content(body))
+                .andExpect(status().isBadRequest());
+    }
+
     // ---------- RF-03 ----------
 
     @Test
-    void solicitarRecuperacion_siempreDevuelve202_existaOnoElCorreo() throws Exception {
+    void solicitarRecuperacion_siempreDevuelve200_existaOnoElCorreo() throws Exception {
         String body = objectMapper.writeValueAsString(new SolicitarRecuperacionRequest("cualquiera@example.com"));
 
         mockMvc.perform(post("/api/auth/recuperacion/solicitar")
                         .contentType("application/json")
                         .content(body))
-                .andExpect(status().isAccepted());
+                .andExpect(status().isOk());
     }
 
     @Test
     void confirmarRecuperacion_codigoInvalido_devuelve400() throws Exception {
-        org.mockito.Mockito.doThrow(new BadRequestException("Código inválido o expirado."))
+        doThrow(new RuntimeException("Código inválido o expirado."))
                 .when(authService).confirmarRecuperacion(any(ConfirmarRecuperacionRequest.class));
 
         String body = objectMapper.writeValueAsString(
@@ -155,24 +153,22 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/auth/recuperacion/confirmar")
                         .contentType("application/json")
                         .content(body))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Código inválido o expirado."));
     }
 
     @Test
-    void confirmarRecuperacion_codigoValido_devuelve204() throws Exception {
+    void confirmarRecuperacion_codigoValido_devuelve200() throws Exception {
         String body = objectMapper.writeValueAsString(
                 new ConfirmarRecuperacionRequest("ana@example.com", "123456", "nuevaClave123"));
 
         mockMvc.perform(post("/api/auth/recuperacion/confirmar")
                         .contentType("application/json")
                         .content(body))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isOk());
     }
 
-    // ---------- RF-04 / RF-05 / RF-06: requieren @AuthenticationPrincipal ----------
-    // Se autentica poniendo directamente el Authentication en SecurityContextHolder
-    // (ver autenticarComo): con addFilters=false ningún filtro está disponible
-    // para leer la sesión y poblar el contexto por nosotros.
+    // ---------- RF-04 / RF-05 / RF-06 ----------
 
     @Test
     void obtenerPerfil_usuarioAutenticado_devuelve200() throws Exception {

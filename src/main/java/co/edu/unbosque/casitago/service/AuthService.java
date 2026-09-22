@@ -1,12 +1,10 @@
 package co.edu.unbosque.casitago.service;
 
 import co.edu.unbosque.casitago.common.audit.AuditService;
-import co.edu.unbosque.casitago.common.exception.BadRequestException;
-import co.edu.unbosque.casitago.common.exception.ConflictException;
-import co.edu.unbosque.casitago.common.exception.ResourceNotFoundException;
 import co.edu.unbosque.casitago.config.JwtService;
 import co.edu.unbosque.casitago.dto.*;
 import co.edu.unbosque.casitago.entity.CodigoRecuperacion;
+import co.edu.unbosque.casitago.entity.RolUsuario;
 import co.edu.unbosque.casitago.entity.Usuario;
 import co.edu.unbosque.casitago.repository.CodigoRecuperacionRepository;
 import co.edu.unbosque.casitago.repository.UsuarioRepository;
@@ -57,15 +55,18 @@ public class AuthService {
     // ---------- RF-01: registro ----------
     @Transactional
     public PerfilResponse registrar(RegistroRequest request) {
-        if (usuarioRepository.existsByCorreo(request.correo())) {
-            throw new ConflictException("Ya existe una cuenta registrada con ese correo.");
+        if (request.getRol() == RolUsuario.ADMINISTRADOR) {
+            throw new RuntimeException("El rol ADMINISTRADOR no puede autoasignarse en el registro.");
+        }
+        if (usuarioRepository.existsByCorreo(request.getCorreo())) {
+            throw new RuntimeException("Ya existe una cuenta registrada con ese correo.");
         }
 
         Usuario usuario = new Usuario(
-                request.nombre(),
-                request.correo(),
-                passwordEncoder.encode(request.contrasena()),
-                request.rol()
+                request.getNombre(),
+                request.getCorreo(),
+                passwordEncoder.encode(request.getContrasena()),
+                request.getRol()
         );
         usuario = usuarioRepository.save(usuario);
 
@@ -77,11 +78,8 @@ public class AuthService {
 
     // ---------- RF-02: login ----------
     public LoginResponse login(LoginRequest request) {
-        // AuthenticationManager valida credenciales y (vía isEnabled()) el
-        // estado activo/inactivo de RF-06; lanza BadCredentialsException o
-        // DisabledException, ambas mapeadas en GlobalExceptionHandler.
         var authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.correo(), request.contrasena()));
+                new UsernamePasswordAuthenticationToken(request.getCorreo(), request.getContrasena()));
 
         Usuario usuario = (Usuario) authentication.getPrincipal();
         String token = jwtService.generarToken(usuario.getId(), usuario.getCorreo(), usuario.getRol().name());
@@ -100,10 +98,9 @@ public class AuthService {
     // ---------- RF-03: recuperación de contraseña ----------
     @Transactional
     public void solicitarRecuperacion(SolicitarRecuperacionRequest request) {
-        // No se revela si el correo existe o no (evita enumeración de usuarios);
-        // si no existe, simplemente no se genera/envía nada, pero la respuesta
-        // al cliente es la misma en ambos casos (ver AuthController).
-        usuarioRepository.findByCorreo(request.correo()).ifPresent(usuario -> {
+        // No se revela si el correo existe o no; si no existe, simplemente no
+        // se genera/envía nada, pero la respuesta al cliente es la misma.
+        usuarioRepository.findByCorreo(request.getCorreo()).ifPresent(usuario -> {
             String codigo = generarCodigoNumerico();
             OffsetDateTime expiraEn = OffsetDateTime.now().plusMinutes(CODIGO_VIGENCIA_MINUTOS);
 
@@ -116,18 +113,20 @@ public class AuthService {
 
     @Transactional
     public void confirmarRecuperacion(ConfirmarRecuperacionRequest request) {
-        Usuario usuario = usuarioRepository.findByCorreo(request.correo())
-                .orElseThrow(() -> new BadRequestException("Código inválido o expirado."));
+        Usuario usuario = usuarioRepository.findByCorreo(request.getCorreo())
+                .orElseThrow(() -> new RuntimeException("Código inválido o expirado."));
 
         CodigoRecuperacion codigo = codigoRecuperacionRepository
-                .findFirstByUsuarioAndCodigoOrderByExpiraEnDesc(usuario, request.codigo())
-                .filter(c -> c.esValido(request.codigo()))
-                .orElseThrow(() -> {
-                    auditService.registrar(usuario.getId(), "usuarios", "CONFIRMACION_RECUPERACION_PASSWORD", "FALLIDO");
-                    return new BadRequestException("Código inválido o expirado.");
-                });
+                .findFirstByUsuarioAndCodigoOrderByExpiraEnDesc(usuario, request.getCodigo())
+                .filter(c -> c.esValido(request.getCodigo()))
+                .orElse(null);
 
-        usuario.setContrasenaHash(passwordEncoder.encode(request.nuevaContrasena()));
+        if (codigo == null) {
+            auditService.registrar(usuario.getId(), "usuarios", "CONFIRMACION_RECUPERACION_PASSWORD", "FALLIDO");
+            throw new RuntimeException("Código inválido o expirado.");
+        }
+
+        usuario.setContrasenaHash(passwordEncoder.encode(request.getNuevaContrasena()));
         codigo.marcarUsado();
 
         auditService.registrar(usuario.getId(), "usuarios", "CONFIRMACION_RECUPERACION_PASSWORD", "EXITOSO");
@@ -144,15 +143,13 @@ public class AuthService {
     public PerfilResponse actualizarPerfil(UUID usuarioId, ActualizarPerfilRequest request) {
         Usuario usuario = buscarPorId(usuarioId);
 
-        if (!usuario.getCorreo().equalsIgnoreCase(request.correo())
-                && usuarioRepository.existsByCorreo(request.correo())) {
-            throw new ConflictException("Ya existe una cuenta registrada con ese correo.");
+        if (!usuario.getCorreo().equalsIgnoreCase(request.getCorreo())
+                && usuarioRepository.existsByCorreo(request.getCorreo())) {
+            throw new RuntimeException("Ya existe una cuenta registrada con ese correo.");
         }
 
-        usuario.setNombre(request.nombre());
-        usuario.setCorreo(request.correo());
-        // Nota: si se permite cambiar el correo, conviene en el futuro
-        // revalidarlo (RF-03 reutiliza correo como identificador de login).
+        usuario.setNombre(request.getNombre());
+        usuario.setCorreo(request.getCorreo());
         auditService.registrar(usuario.getId(), "usuarios", "ACTUALIZAR_PERFIL", "EXITOSO");
 
         return PerfilResponse.desde(usuario);
@@ -162,17 +159,17 @@ public class AuthService {
     @Transactional
     public PerfilResponse cambiarEstadoCuenta(UUID usuarioId, CambiarEstadoCuentaRequest request) {
         Usuario usuario = buscarPorId(usuarioId);
-        usuario.setActivo(request.activo());
+        usuario.setActivo(request.getActivo());
 
         auditService.registrar(usuario.getId(), "usuarios",
-                request.activo() ? "ACTIVAR_CUENTA" : "DESACTIVAR_CUENTA", "EXITOSO");
+                request.getActivo() ? "ACTIVAR_CUENTA" : "DESACTIVAR_CUENTA", "EXITOSO");
 
         return PerfilResponse.desde(usuario);
     }
 
     private Usuario buscarPorId(UUID usuarioId) {
         return usuarioRepository.findById(usuarioId)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado."));
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado."));
     }
 
     private String generarCodigoNumerico() {
