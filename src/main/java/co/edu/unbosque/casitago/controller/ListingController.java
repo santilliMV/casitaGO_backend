@@ -1,8 +1,7 @@
 package co.edu.unbosque.casitago.controller;
 
-import co.edu.unbosque.casitago.dto.ActualizarPublicacionRequest;
 import co.edu.unbosque.casitago.dto.BloquearPublicacionRequest;
-import co.edu.unbosque.casitago.dto.CrearPublicacionRequest;
+import co.edu.unbosque.casitago.dto.PublicacionRequest;
 import co.edu.unbosque.casitago.dto.PublicacionResponse;
 import co.edu.unbosque.casitago.entity.Usuario;
 import co.edu.unbosque.casitago.service.ListingService;
@@ -25,10 +24,9 @@ public class ListingController {
         this.listingService = listingService;
     }
 
-    // ---------- RF-08: crear publicación ----------
     @PostMapping
-    public ResponseEntity<?> crear(@Valid @RequestBody CrearPublicacionRequest request,
-                                   @AuthenticationPrincipal Usuario usuario) {
+    public ResponseEntity<Object> crear(@Valid @RequestBody PublicacionRequest request,
+                                        @AuthenticationPrincipal Usuario usuario) {
         try {
             return ResponseEntity.ok(listingService.crearPublicacion(usuario.getId(), request));
         } catch (RuntimeException e) {
@@ -36,11 +34,10 @@ public class ListingController {
         }
     }
 
-    // ---------- RF-09: editar publicación ----------
     @PutMapping("/{id}")
-    public ResponseEntity<?> editar(@PathVariable UUID id,
-                                    @Valid @RequestBody ActualizarPublicacionRequest request,
-                                    @AuthenticationPrincipal Usuario usuario) {
+    public ResponseEntity<Object> editar(@PathVariable UUID id,
+                                         @Valid @RequestBody PublicacionRequest request,
+                                         @AuthenticationPrincipal Usuario usuario) {
         try {
             return ResponseEntity.ok(listingService.editarPublicacion(usuario.getId(), id, request));
         } catch (RuntimeException e) {
@@ -48,9 +45,8 @@ public class ListingController {
         }
     }
 
-    // ---------- RF-10: activar publicación ----------
     @PatchMapping("/{id}/activar")
-    public ResponseEntity<?> activar(@PathVariable UUID id, @AuthenticationPrincipal Usuario usuario) {
+    public ResponseEntity<Object> activar(@PathVariable UUID id, @AuthenticationPrincipal Usuario usuario) {
         try {
             return ResponseEntity.ok(listingService.activarPublicacion(usuario.getId(), id));
         } catch (RuntimeException e) {
@@ -58,9 +54,8 @@ public class ListingController {
         }
     }
 
-    // ---------- RF-11: pausar publicación ----------
     @PatchMapping("/{id}/pausar")
-    public ResponseEntity<?> pausar(@PathVariable UUID id, @AuthenticationPrincipal Usuario usuario) {
+    public ResponseEntity<Object> pausar(@PathVariable UUID id, @AuthenticationPrincipal Usuario usuario) {
         try {
             return ResponseEntity.ok(listingService.pausarPublicacion(usuario.getId(), id));
         } catch (RuntimeException e) {
@@ -68,9 +63,8 @@ public class ListingController {
         }
     }
 
-    // ---------- RF-12: consultar publicaciones del ANFITRIÓN autenticado ----------
     @GetMapping("/mias")
-    public ResponseEntity<?> misPublicaciones(@AuthenticationPrincipal Usuario usuario) {
+    public ResponseEntity<Object> misPublicaciones(@AuthenticationPrincipal Usuario usuario) {
         try {
             List<PublicacionResponse> publicaciones = listingService.consultarPublicacionesDeAnfitrion(usuario.getId());
             return ResponseEntity.ok(publicaciones);
@@ -79,11 +73,10 @@ public class ListingController {
         }
     }
 
-    // ---------- RF-24: ADMINISTRADOR bloquea publicación ----------
     @PatchMapping("/{id}/bloquear")
-    public ResponseEntity<?> bloquear(@PathVariable UUID id,
-                                      @Valid @RequestBody BloquearPublicacionRequest request,
-                                      @AuthenticationPrincipal Usuario usuario) {
+    public ResponseEntity<Object> bloquear(@PathVariable UUID id,
+                                           @Valid @RequestBody BloquearPublicacionRequest request,
+                                           @AuthenticationPrincipal Usuario usuario) {
         try {
             return ResponseEntity.ok(listingService.bloquearPublicacion(usuario.getId(), id, request));
         } catch (RuntimeException e) {
@@ -91,11 +84,10 @@ public class ListingController {
         }
     }
 
-    // ---------- RF-08 (imágenes): subir imagen a una publicación ----------
     @PostMapping(value = "/{id}/imagenes", consumes = "multipart/form-data")
-    public ResponseEntity<?> agregarImagen(@PathVariable UUID id,
-                                           @RequestParam("archivo") MultipartFile archivo,
-                                           @AuthenticationPrincipal Usuario usuario) {
+    public ResponseEntity<Object> agregarImagen(@PathVariable UUID id,
+                                                @RequestParam("archivo") MultipartFile archivo,
+                                                @AuthenticationPrincipal Usuario usuario) {
         try {
             return ResponseEntity.ok(listingService.agregarImagen(usuario.getId(), id, archivo));
         } catch (RuntimeException e) {

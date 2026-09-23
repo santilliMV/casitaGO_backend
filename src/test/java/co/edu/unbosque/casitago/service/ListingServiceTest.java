@@ -1,9 +1,8 @@
 package co.edu.unbosque.casitago.service;
 
 import co.edu.unbosque.casitago.common.audit.AuditService;
-import co.edu.unbosque.casitago.dto.ActualizarPublicacionRequest;
 import co.edu.unbosque.casitago.dto.BloquearPublicacionRequest;
-import co.edu.unbosque.casitago.dto.CrearPublicacionRequest;
+import co.edu.unbosque.casitago.dto.PublicacionRequest;
 import co.edu.unbosque.casitago.dto.PublicacionResponse;
 import co.edu.unbosque.casitago.entity.*;
 import co.edu.unbosque.casitago.repository.PublicacionRepository;
@@ -14,7 +13,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -63,8 +64,8 @@ class ListingServiceTest {
         ReflectionTestUtils.setField(huesped, "id", UUID.randomUUID());
     }
 
-    private CrearPublicacionRequest requestValido() {
-        CrearPublicacionRequest request = new CrearPublicacionRequest();
+    private PublicacionRequest requestValido() {
+        PublicacionRequest request = new PublicacionRequest();
         request.setTitulo("Apartamento con vista al mar");
         request.setDescripcion("Cómodo y luminoso");
         request.setUbicacionTextual("Cartagena, Bolívar");
@@ -111,10 +112,31 @@ class ListingServiceTest {
     @Test
     void crearPublicacion_conTipoInvalido_deberiaLanzarExcepcion() {
         when(usuarioRepository.findById(anfitrion.getId())).thenReturn(Optional.of(anfitrion));
-        CrearPublicacionRequest request = requestValido();
+        PublicacionRequest request = requestValido();
         request.setTipo("CASTILLO");
 
         assertThrows(RuntimeException.class, () -> listingService.crearPublicacion(anfitrion.getId(), request));
+    }
+
+    @Test
+    void crearPublicacion_sinServiciosNiReglas_deberiaCrearIgual() {
+        when(usuarioRepository.findById(anfitrion.getId())).thenReturn(Optional.of(anfitrion));
+        when(publicacionRepository.save(any(Publicacion.class))).thenAnswer(inv -> {
+            Publicacion publicacion = inv.getArgument(0);
+            if (publicacion.getId() == null) {
+                publicacion.setId(UUID.randomUUID());
+            }
+            return publicacion;
+        });
+
+        PublicacionRequest request = requestValido();
+        request.setServicios(null);
+        request.setReglas(null);
+
+        PublicacionResponse response = listingService.crearPublicacion(anfitrion.getId(), request);
+
+        assertEquals(0, response.getServicios().size());
+        assertEquals(0, response.getReglas().size());
     }
 
     // ---------- RF-09: editar publicación ----------
@@ -125,10 +147,8 @@ class ListingServiceTest {
         when(usuarioRepository.findById(anfitrion.getId())).thenReturn(Optional.of(anfitrion));
         when(publicacionRepository.findById(publicacion.getId())).thenReturn(Optional.of(publicacion));
 
-        ActualizarPublicacionRequest request = new ActualizarPublicacionRequest();
+        PublicacionRequest request = requestValido();
         request.setTitulo("Título actualizado");
-        request.setDescripcion("Descripción actualizada");
-        request.setUbicacionTextual("Bogotá");
         request.setTipo("CASA");
         request.setCapacidad(6);
         request.setPrecioNoche(new BigDecimal("300000"));
@@ -145,13 +165,8 @@ class ListingServiceTest {
         when(usuarioRepository.findById(administrador.getId())).thenReturn(Optional.of(administrador));
         when(publicacionRepository.findById(publicacion.getId())).thenReturn(Optional.of(publicacion));
 
-        ActualizarPublicacionRequest request = new ActualizarPublicacionRequest();
+        PublicacionRequest request = requestValido();
         request.setTitulo("Editado por admin");
-        request.setDescripcion("Descripción");
-        request.setUbicacionTextual("Medellín");
-        request.setTipo("CASA");
-        request.setCapacidad(2);
-        request.setPrecioNoche(new BigDecimal("150000"));
 
         PublicacionResponse response = listingService.editarPublicacion(administrador.getId(), publicacion.getId(), request);
 
@@ -164,10 +179,8 @@ class ListingServiceTest {
         when(usuarioRepository.findById(otroAnfitrion.getId())).thenReturn(Optional.of(otroAnfitrion));
         when(publicacionRepository.findById(publicacion.getId())).thenReturn(Optional.of(publicacion));
 
-        ActualizarPublicacionRequest request = new ActualizarPublicacionRequest();
-
         assertThrows(RuntimeException.class,
-                () -> listingService.editarPublicacion(otroAnfitrion.getId(), publicacion.getId(), request));
+                () -> listingService.editarPublicacion(otroAnfitrion.getId(), publicacion.getId(), requestValido()));
     }
 
     // ---------- RF-10: activar publicación ----------
@@ -213,6 +226,16 @@ class ListingServiceTest {
         assertEquals("PAUSADA", response.getEstado());
     }
 
+    @Test
+    void pausarPublicacion_comoOtroAnfitrion_deberiaLanzarExcepcion() {
+        Publicacion publicacion = publicacionExistente(anfitrion);
+        when(usuarioRepository.findById(otroAnfitrion.getId())).thenReturn(Optional.of(otroAnfitrion));
+        when(publicacionRepository.findById(publicacion.getId())).thenReturn(Optional.of(publicacion));
+
+        assertThrows(RuntimeException.class,
+                () -> listingService.pausarPublicacion(otroAnfitrion.getId(), publicacion.getId()));
+    }
+
     // ---------- RF-12: consultar publicaciones de un ANFITRIÓN ----------
 
     @Test
@@ -254,6 +277,34 @@ class ListingServiceTest {
 
         assertThrows(RuntimeException.class,
                 () -> listingService.bloquearPublicacion(anfitrion.getId(), publicacion.getId(), request));
+    }
+
+    // ---------- RF-08 (imágenes) ----------
+
+    @Test
+    void agregarImagen_propietario_deberiaAgregarla() {
+        Publicacion publicacion = publicacionExistente(anfitrion);
+        when(usuarioRepository.findById(anfitrion.getId())).thenReturn(Optional.of(anfitrion));
+        when(publicacionRepository.findById(publicacion.getId())).thenReturn(Optional.of(publicacion));
+        when(imagenStorageService.subirImagen(any(), any())).thenReturn("https://ejemplo.com/foto.jpg");
+
+        MultipartFile archivo = new MockMultipartFile("archivo", "foto.jpg", "image/jpeg", "x".getBytes());
+
+        PublicacionResponse response = listingService.agregarImagen(anfitrion.getId(), publicacion.getId(), archivo);
+
+        assertEquals(1, response.getImagenes().size());
+    }
+
+    @Test
+    void agregarImagen_noPropietario_deberiaLanzarExcepcion() {
+        Publicacion publicacion = publicacionExistente(anfitrion);
+        when(usuarioRepository.findById(otroAnfitrion.getId())).thenReturn(Optional.of(otroAnfitrion));
+        when(publicacionRepository.findById(publicacion.getId())).thenReturn(Optional.of(publicacion));
+
+        MultipartFile archivo = new MockMultipartFile("archivo", "foto.jpg", "image/jpeg", "x".getBytes());
+
+        assertThrows(RuntimeException.class,
+                () -> listingService.agregarImagen(otroAnfitrion.getId(), publicacion.getId(), archivo));
     }
 
     // ---------- helper ----------

@@ -7,7 +7,7 @@ import jakarta.validation.constraints.Positive;
 import java.math.BigDecimal;
 import java.util.List;
 
-public class ActualizarPublicacionRequest {
+public class PublicacionRequest {
 
     @NotBlank(message = "El título es obligatorio")
     private String titulo;

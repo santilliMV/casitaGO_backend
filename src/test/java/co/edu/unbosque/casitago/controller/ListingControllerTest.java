@@ -1,9 +1,8 @@
 package co.edu.unbosque.casitago.controller;
 
 import co.edu.unbosque.casitago.config.JwtService;
-import co.edu.unbosque.casitago.dto.ActualizarPublicacionRequest;
 import co.edu.unbosque.casitago.dto.BloquearPublicacionRequest;
-import co.edu.unbosque.casitago.dto.CrearPublicacionRequest;
+import co.edu.unbosque.casitago.dto.PublicacionRequest;
 import co.edu.unbosque.casitago.dto.PublicacionResponse;
 import co.edu.unbosque.casitago.entity.RolUsuario;
 import co.edu.unbosque.casitago.entity.Usuario;
@@ -66,8 +65,8 @@ class ListingControllerTest {
         return usuario;
     }
 
-    private CrearPublicacionRequest requestCrearValido() {
-        CrearPublicacionRequest request = new CrearPublicacionRequest();
+    private PublicacionRequest requestValido() {
+        PublicacionRequest request = new PublicacionRequest();
         request.setTitulo("Apartamento con vista al mar");
         request.setDescripcion("Cómodo y luminoso");
         request.setUbicacionTextual("Cartagena, Bolívar");
@@ -95,10 +94,10 @@ class ListingControllerTest {
         autenticarComo(usuarioDePrueba(usuarioId, RolUsuario.ANFITRION));
 
         UUID publicacionId = UUID.randomUUID();
-        when(listingService.crearPublicacion(any(), any(CrearPublicacionRequest.class)))
+        when(listingService.crearPublicacion(any(), any(PublicacionRequest.class)))
                 .thenReturn(respuestaDePrueba(publicacionId, "BORRADOR"));
 
-        String body = objectMapper.writeValueAsString(requestCrearValido());
+        String body = objectMapper.writeValueAsString(requestValido());
 
         mockMvc.perform(post("/api/publicaciones")
                         .contentType("application/json")
@@ -112,7 +111,7 @@ class ListingControllerTest {
         UUID usuarioId = UUID.randomUUID();
         autenticarComo(usuarioDePrueba(usuarioId, RolUsuario.ANFITRION));
 
-        CrearPublicacionRequest request = requestCrearValido();
+        PublicacionRequest request = requestValido();
         request.setTitulo("");
         String body = objectMapper.writeValueAsString(request);
 
@@ -127,10 +126,10 @@ class ListingControllerTest {
         UUID usuarioId = UUID.randomUUID();
         autenticarComo(usuarioDePrueba(usuarioId, RolUsuario.HUESPED));
 
-        when(listingService.crearPublicacion(any(), any(CrearPublicacionRequest.class)))
+        when(listingService.crearPublicacion(any(), any(PublicacionRequest.class)))
                 .thenThrow(new RuntimeException("Solo un usuario con rol ANFITRIÓN puede crear publicaciones."));
 
-        String body = objectMapper.writeValueAsString(requestCrearValido());
+        String body = objectMapper.writeValueAsString(requestValido());
 
         mockMvc.perform(post("/api/publicaciones")
                         .contentType("application/json")
@@ -147,18 +146,10 @@ class ListingControllerTest {
         autenticarComo(usuarioDePrueba(usuarioId, RolUsuario.ANFITRION));
 
         UUID publicacionId = UUID.randomUUID();
-        when(listingService.editarPublicacion(any(), any(), any(ActualizarPublicacionRequest.class)))
+        when(listingService.editarPublicacion(any(), any(), any(PublicacionRequest.class)))
                 .thenReturn(respuestaDePrueba(publicacionId, "BORRADOR"));
 
-        ActualizarPublicacionRequest request = new ActualizarPublicacionRequest();
-        request.setTitulo("Título editado");
-        request.setDescripcion("Descripción");
-        request.setUbicacionTextual("Bogotá");
-        request.setTipo("CASA");
-        request.setCapacidad(2);
-        request.setPrecioNoche(new BigDecimal("100000"));
-
-        String body = objectMapper.writeValueAsString(request);
+        String body = objectMapper.writeValueAsString(requestValido());
 
         mockMvc.perform(put("/api/publicaciones/" + publicacionId)
                         .contentType("application/json")
@@ -171,18 +162,10 @@ class ListingControllerTest {
         UUID usuarioId = UUID.randomUUID();
         autenticarComo(usuarioDePrueba(usuarioId, RolUsuario.ANFITRION));
 
-        when(listingService.editarPublicacion(any(), any(), any(ActualizarPublicacionRequest.class)))
+        when(listingService.editarPublicacion(any(), any(), any(PublicacionRequest.class)))
                 .thenThrow(new RuntimeException("No tienes permiso para editar esta publicación."));
 
-        ActualizarPublicacionRequest request = new ActualizarPublicacionRequest();
-        request.setTitulo("Título");
-        request.setDescripcion("Descripción");
-        request.setUbicacionTextual("Bogotá");
-        request.setTipo("CASA");
-        request.setCapacidad(2);
-        request.setPrecioNoche(new BigDecimal("100000"));
-
-        String body = objectMapper.writeValueAsString(request);
+        String body = objectMapper.writeValueAsString(requestValido());
 
         mockMvc.perform(put("/api/publicaciones/" + UUID.randomUUID())
                         .contentType("application/json")
@@ -309,5 +292,22 @@ class ListingControllerTest {
         mockMvc.perform(multipart("/api/publicaciones/" + publicacionId + "/imagenes")
                         .file(archivo))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void agregarImagen_sinPermiso_devuelve400() throws Exception {
+        UUID usuarioId = UUID.randomUUID();
+        autenticarComo(usuarioDePrueba(usuarioId, RolUsuario.ANFITRION));
+
+        when(listingService.agregarImagen(any(), any(), any()))
+                .thenThrow(new RuntimeException("Solo el ANFITRIÓN propietario puede realizar esta acción."));
+
+        MockMultipartFile archivo = new MockMultipartFile(
+                "archivo", "foto.jpg", "image/jpeg", "contenido-falso".getBytes());
+
+        mockMvc.perform(multipart("/api/publicaciones/" + UUID.randomUUID() + "/imagenes")
+                        .file(archivo))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Solo el ANFITRIÓN propietario puede realizar esta acción."));
     }
 }

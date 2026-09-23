@@ -1,16 +1,18 @@
 package co.edu.unbosque.casitago.service;
 
 import co.edu.unbosque.casitago.common.audit.AuditService;
-import co.edu.unbosque.casitago.dto.ActualizarPublicacionRequest;
 import co.edu.unbosque.casitago.dto.BloquearPublicacionRequest;
-import co.edu.unbosque.casitago.dto.CrearPublicacionRequest;
+import co.edu.unbosque.casitago.dto.PublicacionRequest;
 import co.edu.unbosque.casitago.dto.PublicacionResponse;
 import co.edu.unbosque.casitago.entity.*;
 import co.edu.unbosque.casitago.repository.PublicacionRepository;
 import co.edu.unbosque.casitago.repository.UsuarioRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -18,6 +20,9 @@ import java.util.stream.Collectors;
 
 @Service
 public class ListingService {
+
+    private static final String ENTIDAD_PUBLICACIONES = "publicaciones";
+    private static final String RESULTADO_EXITOSO = "EXITOSO";
 
     private final PublicacionRepository publicacionRepository;
     private final UsuarioRepository usuarioRepository;
@@ -27,7 +32,8 @@ public class ListingService {
     public ListingService(
             PublicacionRepository publicacionRepository,
             UsuarioRepository usuarioRepository,
-            AuditService auditService, ImagenStorageService imagenStorageService
+            AuditService auditService,
+            ImagenStorageService imagenStorageService
     ) {
         this.publicacionRepository = publicacionRepository;
         this.usuarioRepository = usuarioRepository;
@@ -37,7 +43,7 @@ public class ListingService {
 
     // ---------- RF-08: crear publicación ----------
     @Transactional
-    public PublicacionResponse crearPublicacion(UUID usuarioId, CrearPublicacionRequest request) {
+    public PublicacionResponse crearPublicacion(UUID usuarioId, PublicacionRequest request) {
         Usuario anfitrion = buscarUsuario(usuarioId);
 
         if (anfitrion.getRol() != RolUsuario.ANFITRION) {
@@ -53,28 +59,7 @@ public class ListingService {
 
         publicacion = publicacionRepository.save(publicacion);
 
-        auditService.registrar(anfitrion.getId(), "publicaciones", "CREAR_PUBLICACION", "EXITOSO",
-                Map.of("publicacionId", publicacion.getId().toString()));
-
-        return PublicacionResponse.desde(publicacion);
-    }
-    // ---------- RF-08 (parte de imágenes): agregar imagen a una publicación ----------
-    @Transactional
-    public PublicacionResponse agregarImagen(UUID usuarioId, UUID publicacionId, org.springframework.web.multipart.MultipartFile archivo) {
-        Usuario usuario = buscarUsuario(usuarioId);
-        Publicacion publicacion = buscarPublicacion(publicacionId);
-
-        verificarPropietario(usuario, publicacion);
-
-        String url = imagenStorageService.subirImagen(publicacionId, archivo);
-
-        ImagenPublicacion imagen = new ImagenPublicacion();
-        imagen.setPublicacion(publicacion);
-        imagen.setUrl(url);
-        imagen.setOrden(publicacion.getImagenes().size());
-        publicacion.getImagenes().add(imagen);
-
-        auditService.registrar(usuario.getId(), "publicaciones", "AGREGAR_IMAGEN", "EXITOSO",
+        auditService.registrar(anfitrion.getId(), ENTIDAD_PUBLICACIONES, "CREAR_PUBLICACION", RESULTADO_EXITOSO,
                 Map.of("publicacionId", publicacion.getId().toString()));
 
         return PublicacionResponse.desde(publicacion);
@@ -82,7 +67,7 @@ public class ListingService {
 
     // ---------- RF-09: editar publicación (propietario o ADMINISTRADOR) ----------
     @Transactional
-    public PublicacionResponse editarPublicacion(UUID usuarioId, UUID publicacionId, ActualizarPublicacionRequest request) {
+    public PublicacionResponse editarPublicacion(UUID usuarioId, UUID publicacionId, PublicacionRequest request) {
         Usuario usuario = buscarUsuario(usuarioId);
         Publicacion publicacion = buscarPublicacion(publicacionId);
 
@@ -93,7 +78,7 @@ public class ListingService {
         reemplazarServicios(publicacion, request.getServicios());
         reemplazarReglas(publicacion, request.getReglas());
 
-        auditService.registrar(usuario.getId(), "publicaciones", "EDITAR_PUBLICACION", "EXITOSO",
+        auditService.registrar(usuario.getId(), ENTIDAD_PUBLICACIONES, "EDITAR_PUBLICACION", RESULTADO_EXITOSO,
                 Map.of("publicacionId", publicacion.getId().toString()));
 
         return PublicacionResponse.desde(publicacion);
@@ -113,7 +98,7 @@ public class ListingService {
 
         publicacion.setEstado(EstadoPublicacion.ACTIVA);
 
-        auditService.registrar(usuario.getId(), "publicaciones", "ACTIVAR_PUBLICACION", "EXITOSO",
+        auditService.registrar(usuario.getId(), ENTIDAD_PUBLICACIONES, "ACTIVAR_PUBLICACION", RESULTADO_EXITOSO,
                 Map.of("publicacionId", publicacion.getId().toString()));
 
         return PublicacionResponse.desde(publicacion);
@@ -129,7 +114,7 @@ public class ListingService {
 
         publicacion.setEstado(EstadoPublicacion.PAUSADA);
 
-        auditService.registrar(usuario.getId(), "publicaciones", "PAUSAR_PUBLICACION", "EXITOSO",
+        auditService.registrar(usuario.getId(), ENTIDAD_PUBLICACIONES, "PAUSAR_PUBLICACION", RESULTADO_EXITOSO,
                 Map.of("publicacionId", publicacion.getId().toString()));
 
         return PublicacionResponse.desde(publicacion);
@@ -154,13 +139,32 @@ public class ListingService {
             throw new RuntimeException("Solo un ADMINISTRADOR puede bloquear una publicación.");
         }
 
-        // Las reservas futuras asociadas a esta publicación NO se tocan aquí:
-        // solo cambia el estado de la publicación, por lo que quedan intactas
-        // para auditoría, tal como exige el RF-24.
         publicacion.setEstado(EstadoPublicacion.BLOQUEADA);
 
-        auditService.registrar(administrador.getId(), "publicaciones", "BLOQUEAR_PUBLICACION", "EXITOSO",
+        auditService.registrar(administrador.getId(), ENTIDAD_PUBLICACIONES, "BLOQUEAR_PUBLICACION", RESULTADO_EXITOSO,
                 Map.of("publicacionId", publicacion.getId().toString(), "motivo", request.getMotivo()));
+
+        return PublicacionResponse.desde(publicacion);
+    }
+
+    // ---------- RF-08 (imágenes): agregar imagen a una publicación ----------
+    @Transactional
+    public PublicacionResponse agregarImagen(UUID usuarioId, UUID publicacionId, MultipartFile archivo) {
+        Usuario usuario = buscarUsuario(usuarioId);
+        Publicacion publicacion = buscarPublicacion(publicacionId);
+
+        verificarPropietario(usuario, publicacion);
+
+        String url = imagenStorageService.subirImagen(publicacionId, archivo);
+
+        ImagenPublicacion imagen = new ImagenPublicacion();
+        imagen.setPublicacion(publicacion);
+        imagen.setUrl(url);
+        imagen.setOrden(publicacion.getImagenes().size());
+        publicacion.getImagenes().add(imagen);
+
+        auditService.registrar(usuario.getId(), ENTIDAD_PUBLICACIONES, "AGREGAR_IMAGEN", RESULTADO_EXITOSO,
+                Map.of("publicacionId", publicacion.getId().toString()));
 
         return PublicacionResponse.desde(publicacion);
     }
@@ -168,7 +172,7 @@ public class ListingService {
     // ---------- helpers privados ----------
 
     private void aplicarDatos(Publicacion publicacion, String titulo, String descripcion, String ubicacionTextual,
-                              String tipo, Integer capacidad, java.math.BigDecimal precioNoche) {
+                              String tipo, Integer capacidad, BigDecimal precioNoche) {
         TipoAlojamiento tipoAlojamiento;
         try {
             tipoAlojamiento = TipoAlojamiento.valueOf(tipo);
@@ -182,7 +186,7 @@ public class ListingService {
         publicacion.setTipo(tipoAlojamiento);
         publicacion.setCapacidad(capacidad);
         publicacion.setPrecioNoche(precioNoche);
-        publicacion.setActualizadoEn(java.time.LocalDateTime.now());
+        publicacion.setActualizadoEn(LocalDateTime.now());
     }
 
     private void reemplazarServicios(Publicacion publicacion, List<String> nombres) {
