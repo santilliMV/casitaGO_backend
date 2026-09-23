@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 import java.util.Map;
 import java.util.UUID;
@@ -46,6 +47,8 @@ class AuditServiceTest {
         auditService = new AuditService(eventoAuditoriaRepository);
         when(eventoAuditoriaRepository.save(any())).thenThrow(new RuntimeException("caída de BD"));
 
-        auditService.registrar(UUID.randomUUID(), "usuarios", "LOGIN", "EXITOSO");
+        // La auditoría nunca debe tumbar la operación de negocio que la originó.
+        assertThatCode(() -> auditService.registrar(UUID.randomUUID(), "usuarios", "LOGIN", "EXITOSO"))
+                .doesNotThrowAnyException();
     }
 }

@@ -222,4 +222,21 @@ class AuthControllerTest {
         ReflectionTestUtils.setField(usuario, "id", id);
         return usuario;
     }
+
+    @Test
+    void actualizarPerfil_correoDuplicado_devuelve400() throws Exception {
+        UUID id = UUID.randomUUID();
+        Usuario principal = usuarioDePrueba(id);
+        autenticarComo(principal);
+        when(authService.actualizarPerfil(any(), any(ActualizarPerfilRequest.class)))
+                .thenThrow(new RuntimeException("Ya existe una cuenta registrada con ese correo."));
+
+        String body = objectMapper.writeValueAsString(new ActualizarPerfilRequest("Ana Ríos", "ocupado@example.com"));
+
+        mockMvc.perform(put("/api/auth/perfil")
+                        .contentType("application/json")
+                        .content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Ya existe una cuenta registrada con ese correo."));
+    }
 }
