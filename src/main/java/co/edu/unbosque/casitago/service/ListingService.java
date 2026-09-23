@@ -23,6 +23,7 @@ public class ListingService {
 
     private static final String ENTIDAD_PUBLICACIONES = "publicaciones";
     private static final String RESULTADO_EXITOSO = "EXITOSO";
+    private static final String PUBLICACION_ID = "publicacionId";
 
     private final PublicacionRepository publicacionRepository;
     private final UsuarioRepository usuarioRepository;
@@ -60,7 +61,7 @@ public class ListingService {
         publicacion = publicacionRepository.save(publicacion);
 
         auditService.registrar(anfitrion.getId(), ENTIDAD_PUBLICACIONES, "CREAR_PUBLICACION", RESULTADO_EXITOSO,
-                Map.of("publicacionId", publicacion.getId().toString()));
+                Map.of(PUBLICACION_ID, publicacion.getId().toString()));
 
         return PublicacionResponse.desde(publicacion);
     }
@@ -79,7 +80,7 @@ public class ListingService {
         reemplazarReglas(publicacion, request.getReglas());
 
         auditService.registrar(usuario.getId(), ENTIDAD_PUBLICACIONES, "EDITAR_PUBLICACION", RESULTADO_EXITOSO,
-                Map.of("publicacionId", publicacion.getId().toString()));
+                Map.of(PUBLICACION_ID, publicacion.getId().toString()));
 
         return PublicacionResponse.desde(publicacion);
     }
@@ -99,7 +100,7 @@ public class ListingService {
         publicacion.setEstado(EstadoPublicacion.ACTIVA);
 
         auditService.registrar(usuario.getId(), ENTIDAD_PUBLICACIONES, "ACTIVAR_PUBLICACION", RESULTADO_EXITOSO,
-                Map.of("publicacionId", publicacion.getId().toString()));
+                Map.of(PUBLICACION_ID, publicacion.getId().toString()));
 
         return PublicacionResponse.desde(publicacion);
     }
@@ -115,7 +116,7 @@ public class ListingService {
         publicacion.setEstado(EstadoPublicacion.PAUSADA);
 
         auditService.registrar(usuario.getId(), ENTIDAD_PUBLICACIONES, "PAUSAR_PUBLICACION", RESULTADO_EXITOSO,
-                Map.of("publicacionId", publicacion.getId().toString()));
+                Map.of(PUBLICACION_ID, publicacion.getId().toString()));
 
         return PublicacionResponse.desde(publicacion);
     }
@@ -142,7 +143,7 @@ public class ListingService {
         publicacion.setEstado(EstadoPublicacion.BLOQUEADA);
 
         auditService.registrar(administrador.getId(), ENTIDAD_PUBLICACIONES, "BLOQUEAR_PUBLICACION", RESULTADO_EXITOSO,
-                Map.of("publicacionId", publicacion.getId().toString(), "motivo", request.getMotivo()));
+                Map.of(PUBLICACION_ID, publicacion.getId().toString(), "motivo", request.getMotivo()));
 
         return PublicacionResponse.desde(publicacion);
     }
@@ -164,7 +165,7 @@ public class ListingService {
         publicacion.getImagenes().add(imagen);
 
         auditService.registrar(usuario.getId(), ENTIDAD_PUBLICACIONES, "AGREGAR_IMAGEN", RESULTADO_EXITOSO,
-                Map.of("publicacionId", publicacion.getId().toString()));
+                Map.of(PUBLICACION_ID, publicacion.getId().toString()));
 
         return PublicacionResponse.desde(publicacion);
     }

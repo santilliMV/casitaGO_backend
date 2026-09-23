@@ -1,25 +1,19 @@
 package co.edu.unbosque.casitago.dto;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.UUID;
 import co.edu.unbosque.casitago.entity.ImagenPublicacion;
 import co.edu.unbosque.casitago.entity.Publicacion;
 import co.edu.unbosque.casitago.entity.ReglaAlojamiento;
 import co.edu.unbosque.casitago.entity.ServicioAlojamiento;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
-public class PublicacionResponse {
+public class PublicacionResponse extends DatosPublicacion {
 
     private UUID id;
     private UUID anfitrionId;
-    private String titulo;
-    private String descripcion;
-    private String ubicacionTextual;
-    private String tipo;
-    private Integer capacidad;
-    private BigDecimal precioNoche;
     private String estado;
     private List<String> servicios;
     private List<String> reglas;
@@ -31,12 +25,12 @@ public class PublicacionResponse {
         PublicacionResponse response = new PublicacionResponse();
         response.id = publicacion.getId();
         response.anfitrionId = publicacion.getAnfitrion().getId();
-        response.titulo = publicacion.getTitulo();
-        response.descripcion = publicacion.getDescripcion();
-        response.ubicacionTextual = publicacion.getUbicacionTextual();
-        response.tipo = publicacion.getTipo().name();
-        response.capacidad = publicacion.getCapacidad();
-        response.precioNoche = publicacion.getPrecioNoche();
+        response.setTitulo(publicacion.getTitulo());
+        response.setDescripcion(publicacion.getDescripcion());
+        response.setUbicacionTextual(publicacion.getUbicacionTextual());
+        response.setTipo(publicacion.getTipo().name());
+        response.setCapacidad(publicacion.getCapacidad());
+        response.setPrecioNoche(publicacion.getPrecioNoche());
         response.estado = publicacion.getEstado().name();
         response.servicios = publicacion.getServicios().stream()
                 .map(ServicioAlojamiento::getNombre)
@@ -66,54 +60,6 @@ public class PublicacionResponse {
 
     public void setAnfitrionId(UUID anfitrionId) {
         this.anfitrionId = anfitrionId;
-    }
-
-    public String getTitulo() {
-        return titulo;
-    }
-
-    public void setTitulo(String titulo) {
-        this.titulo = titulo;
-    }
-
-    public String getDescripcion() {
-        return descripcion;
-    }
-
-    public void setDescripcion(String descripcion) {
-        this.descripcion = descripcion;
-    }
-
-    public String getUbicacionTextual() {
-        return ubicacionTextual;
-    }
-
-    public void setUbicacionTextual(String ubicacionTextual) {
-        this.ubicacionTextual = ubicacionTextual;
-    }
-
-    public String getTipo() {
-        return tipo;
-    }
-
-    public void setTipo(String tipo) {
-        this.tipo = tipo;
-    }
-
-    public Integer getCapacidad() {
-        return capacidad;
-    }
-
-    public void setCapacidad(Integer capacidad) {
-        this.capacidad = capacidad;
-    }
-
-    public BigDecimal getPrecioNoche() {
-        return precioNoche;
-    }
-
-    public void setPrecioNoche(BigDecimal precioNoche) {
-        this.precioNoche = precioNoche;
     }
 
     public String getEstado() {
