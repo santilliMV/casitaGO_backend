@@ -5,7 +5,7 @@ import co.edu.unbosque.casitago.dto.*;
 import co.edu.unbosque.casitago.entity.RolUsuario;
 import co.edu.unbosque.casitago.entity.Usuario;
 import co.edu.unbosque.casitago.repository.UsuarioRepository;
-import co.edu.unbosque.casitago.service.AuthService;
+import co.edu.unbosque.casitago.service.AutenticacionService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -26,9 +26,9 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(controllers = AuthController.class)
+@WebMvcTest(controllers = AutenticacionController.class)
 @AutoConfigureMockMvc(addFilters = false)
-class AuthControllerTest {
+class AutenticacionControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -37,7 +37,7 @@ class AuthControllerTest {
     private ObjectMapper objectMapper;
 
     @MockitoBean
-    private AuthService authService;
+    private AutenticacionService autenticacionService;
 
     @MockitoBean
     private JwtService jwtService;
@@ -61,7 +61,7 @@ class AuthControllerTest {
     void registrar_datosValidos_devuelve201() throws Exception {
         PerfilResponse respuesta = new PerfilResponse(
                 UUID.randomUUID(), "Ana Ríos", "ana@example.com", RolUsuario.HUESPED, true, null);
-        when(authService.registrar(any(RegistroRequest.class))).thenReturn(respuesta);
+        when(autenticacionService.registrar(any(RegistroRequest.class))).thenReturn(respuesta);
 
         String body = objectMapper.writeValueAsString(
                 new RegistroRequest("Ana Ríos", "ana@example.com", "clave12345", RolUsuario.HUESPED));
@@ -88,7 +88,7 @@ class AuthControllerTest {
 
     @Test
     void registrar_correoDuplicado_devuelve400() throws Exception {
-        when(authService.registrar(any(RegistroRequest.class)))
+        when(autenticacionService.registrar(any(RegistroRequest.class)))
                 .thenThrow(new RuntimeException("Ya existe una cuenta registrada con ese correo."));
 
         String body = objectMapper.writeValueAsString(
@@ -106,7 +106,7 @@ class AuthControllerTest {
     @Test
     void login_credencialesValidas_devuelve200ConToken() throws Exception {
         LoginResponse respuesta = new LoginResponse("jwt-token", 1800L, UUID.randomUUID(), "Ana", RolUsuario.HUESPED);
-        when(authService.login(any(LoginRequest.class))).thenReturn(respuesta);
+        when(autenticacionService.login(any(LoginRequest.class))).thenReturn(respuesta);
 
         String body = objectMapper.writeValueAsString(new LoginRequest("ana@example.com", "clave12345"));
 
@@ -119,7 +119,7 @@ class AuthControllerTest {
 
     @Test
     void login_credencialesInvalidas_devuelve400() throws Exception {
-        when(authService.login(any(LoginRequest.class)))
+        when(autenticacionService.login(any(LoginRequest.class)))
                 .thenThrow(new RuntimeException("mal"));
 
         String body = objectMapper.writeValueAsString(new LoginRequest("ana@example.com", "incorrecta"));
@@ -145,7 +145,7 @@ class AuthControllerTest {
     @Test
     void confirmarRecuperacion_codigoInvalido_devuelve400() throws Exception {
         doThrow(new RuntimeException("Código inválido o expirado."))
-                .when(authService).confirmarRecuperacion(any(ConfirmarRecuperacionRequest.class));
+                .when(autenticacionService).confirmarRecuperacion(any(ConfirmarRecuperacionRequest.class));
 
         String body = objectMapper.writeValueAsString(
                 new ConfirmarRecuperacionRequest("ana@example.com", "000000", "nuevaClave123"));
@@ -176,7 +176,7 @@ class AuthControllerTest {
         Usuario principal = usuarioDePrueba(id);
         autenticarComo(principal);
         PerfilResponse respuesta = new PerfilResponse(id, "Ana", "ana@example.com", RolUsuario.HUESPED, true, null);
-        when(authService.obtenerPerfil(id)).thenReturn(respuesta);
+        when(autenticacionService.obtenerPerfil(id)).thenReturn(respuesta);
 
         mockMvc.perform(get("/api/auth/perfil"))
                 .andExpect(status().isOk())
@@ -189,7 +189,7 @@ class AuthControllerTest {
         Usuario principal = usuarioDePrueba(id);
         autenticarComo(principal);
         PerfilResponse respuesta = new PerfilResponse(id, "Ana Ríos", "ana.nueva@example.com", RolUsuario.HUESPED, true, null);
-        when(authService.actualizarPerfil(any(), any(ActualizarPerfilRequest.class))).thenReturn(respuesta);
+        when(autenticacionService.actualizarPerfil(any(), any(ActualizarPerfilRequest.class))).thenReturn(respuesta);
 
         String body = objectMapper.writeValueAsString(new ActualizarPerfilRequest("Ana Ríos", "ana.nueva@example.com"));
 
@@ -206,7 +206,7 @@ class AuthControllerTest {
         Usuario principal = usuarioDePrueba(id);
         autenticarComo(principal);
         PerfilResponse respuesta = new PerfilResponse(id, "Ana", "ana@example.com", RolUsuario.HUESPED, false, null);
-        when(authService.cambiarEstadoCuenta(any(), any(CambiarEstadoCuentaRequest.class))).thenReturn(respuesta);
+        when(autenticacionService.cambiarEstadoCuenta(any(), any(CambiarEstadoCuentaRequest.class))).thenReturn(respuesta);
 
         String body = objectMapper.writeValueAsString(new CambiarEstadoCuentaRequest(false));
 
@@ -228,7 +228,7 @@ class AuthControllerTest {
         UUID id = UUID.randomUUID();
         Usuario principal = usuarioDePrueba(id);
         autenticarComo(principal);
-        when(authService.actualizarPerfil(any(), any(ActualizarPerfilRequest.class)))
+        when(autenticacionService.actualizarPerfil(any(), any(ActualizarPerfilRequest.class)))
                 .thenThrow(new RuntimeException("Ya existe una cuenta registrada con ese correo."));
 
         String body = objectMapper.writeValueAsString(new ActualizarPerfilRequest("Ana Ríos", "ocupado@example.com"));

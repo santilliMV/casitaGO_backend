@@ -2,7 +2,7 @@ package co.edu.unbosque.casitago.controller;
 
 import co.edu.unbosque.casitago.dto.*;
 import co.edu.unbosque.casitago.entity.Usuario;
-import co.edu.unbosque.casitago.service.AuthService;
+import co.edu.unbosque.casitago.service.AutenticacionService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,19 +11,19 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
-public class AuthController {
+public class AutenticacionController {
 
-    private final AuthService authService;
+    private final AutenticacionService autenticacionService;
 
-    public AuthController(AuthService authService) {
-        this.authService = authService;
+    public AutenticacionController(AutenticacionService autenticacionService) {
+        this.autenticacionService = autenticacionService;
     }
 
     // RF-01
     @PostMapping("/registro")
     public ResponseEntity<?> registrar(@Valid @RequestBody RegistroRequest request) {
         try {
-            PerfilResponse perfil = authService.registrar(request);
+            PerfilResponse perfil = autenticacionService.registrar(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(perfil);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -34,7 +34,7 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
         try {
-            LoginResponse respuesta = authService.login(request);
+            LoginResponse respuesta = autenticacionService.login(request);
             return ResponseEntity.ok(respuesta);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Correo o contraseña inválidos");
@@ -44,7 +44,7 @@ public class AuthController {
     // RF-03 (paso 1 de 2): solicitar el código
     @PostMapping("/recuperacion/solicitar")
     public ResponseEntity<?> solicitarRecuperacion(@Valid @RequestBody SolicitarRecuperacionRequest request) {
-        authService.solicitarRecuperacion(request);
+        autenticacionService.solicitarRecuperacion(request);
         // Misma respuesta exista o no el correo, para no revelar qué correos están registrados.
         return ResponseEntity.ok("Si el correo existe, se envió un código de recuperación.");
     }
@@ -53,7 +53,7 @@ public class AuthController {
     @PostMapping("/recuperacion/confirmar")
     public ResponseEntity<?> confirmarRecuperacion(@Valid @RequestBody ConfirmarRecuperacionRequest request) {
         try {
-            authService.confirmarRecuperacion(request);
+            autenticacionService.confirmarRecuperacion(request);
             return ResponseEntity.ok("Contraseña actualizada correctamente.");
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -63,7 +63,7 @@ public class AuthController {
     // RF-04
     @GetMapping("/perfil")
     public ResponseEntity<?> obtenerPerfil(@AuthenticationPrincipal Usuario usuario) {
-        return ResponseEntity.ok(authService.obtenerPerfil(usuario.getId()));
+        return ResponseEntity.ok(autenticacionService.obtenerPerfil(usuario.getId()));
     }
 
     // RF-05
@@ -73,7 +73,7 @@ public class AuthController {
             @Valid @RequestBody ActualizarPerfilRequest request
     ) {
         try {
-            return ResponseEntity.ok(authService.actualizarPerfil(usuario.getId(), request));
+            return ResponseEntity.ok(autenticacionService.actualizarPerfil(usuario.getId(), request));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -85,6 +85,6 @@ public class AuthController {
             @AuthenticationPrincipal Usuario usuario,
             @Valid @RequestBody CambiarEstadoCuentaRequest request
     ) {
-        return ResponseEntity.ok(authService.cambiarEstadoCuenta(usuario.getId(), request));
+        return ResponseEntity.ok(autenticacionService.cambiarEstadoCuenta(usuario.getId(), request));
     }
 }

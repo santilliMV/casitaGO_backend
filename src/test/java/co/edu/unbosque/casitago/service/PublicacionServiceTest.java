@@ -27,7 +27,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class ListingServiceTest {
+class PublicacionServiceTest {
 
     @Mock
     private PublicacionRepository publicacionRepository;
@@ -42,7 +42,7 @@ class ListingServiceTest {
     private ImagenStorageService imagenStorageService;
 
     @InjectMocks
-    private ListingService listingService;
+    private PublicacionService publicacionService;
 
     private Usuario anfitrion;
     private Usuario otroAnfitrion;
@@ -69,6 +69,7 @@ class ListingServiceTest {
         request.setTitulo("Apartamento con vista al mar");
         request.setDescripcion("Cómodo y luminoso");
         request.setUbicacionTextual("Cartagena, Bolívar");
+        request.setCiudad("Cartagena");
         request.setTipo("APARTAMENTO");
         request.setCapacidad(4);
         request.setPrecioNoche(new BigDecimal("250000"));
@@ -90,7 +91,7 @@ class ListingServiceTest {
             return publicacion;
         });
 
-        PublicacionResponse response = listingService.crearPublicacion(anfitrion.getId(), requestValido());
+        PublicacionResponse response = publicacionService.crearPublicacion(anfitrion.getId(), requestValido());
 
         assertEquals("BORRADOR", response.getEstado());
         assertEquals("Apartamento con vista al mar", response.getTitulo());
@@ -103,7 +104,7 @@ class ListingServiceTest {
         when(usuarioRepository.findById(huesped.getId())).thenReturn(Optional.of(huesped));
 
         RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> listingService.crearPublicacion(huesped.getId(), requestValido()));
+                () -> publicacionService.crearPublicacion(huesped.getId(), requestValido()));
 
         assertEquals("Solo un usuario con rol ANFITRIÓN puede crear publicaciones.", ex.getMessage());
         verify(publicacionRepository, never()).save(any());
@@ -115,7 +116,7 @@ class ListingServiceTest {
         PublicacionRequest request = requestValido();
         request.setTipo("CASTILLO");
 
-        assertThrows(RuntimeException.class, () -> listingService.crearPublicacion(anfitrion.getId(), request));
+        assertThrows(RuntimeException.class, () -> publicacionService.crearPublicacion(anfitrion.getId(), request));
     }
 
     @Test
@@ -133,7 +134,7 @@ class ListingServiceTest {
         request.setServicios(null);
         request.setReglas(null);
 
-        PublicacionResponse response = listingService.crearPublicacion(anfitrion.getId(), request);
+        PublicacionResponse response = publicacionService.crearPublicacion(anfitrion.getId(), request);
 
         assertEquals(0, response.getServicios().size());
         assertEquals(0, response.getReglas().size());
@@ -153,7 +154,7 @@ class ListingServiceTest {
         request.setCapacidad(6);
         request.setPrecioNoche(new BigDecimal("300000"));
 
-        PublicacionResponse response = listingService.editarPublicacion(anfitrion.getId(), publicacion.getId(), request);
+        PublicacionResponse response = publicacionService.editarPublicacion(anfitrion.getId(), publicacion.getId(), request);
 
         assertEquals("Título actualizado", response.getTitulo());
         assertEquals("CASA", response.getTipo());
@@ -168,7 +169,7 @@ class ListingServiceTest {
         PublicacionRequest request = requestValido();
         request.setTitulo("Editado por admin");
 
-        PublicacionResponse response = listingService.editarPublicacion(administrador.getId(), publicacion.getId(), request);
+        PublicacionResponse response = publicacionService.editarPublicacion(administrador.getId(), publicacion.getId(), request);
 
         assertEquals("Editado por admin", response.getTitulo());
     }
@@ -180,7 +181,7 @@ class ListingServiceTest {
         when(publicacionRepository.findById(publicacion.getId())).thenReturn(Optional.of(publicacion));
 
         assertThrows(RuntimeException.class,
-                () -> listingService.editarPublicacion(otroAnfitrion.getId(), publicacion.getId(), requestValido()));
+                () -> publicacionService.editarPublicacion(otroAnfitrion.getId(), publicacion.getId(), requestValido()));
     }
 
     // ---------- RF-10: activar publicación ----------
@@ -192,7 +193,7 @@ class ListingServiceTest {
         when(publicacionRepository.findById(publicacion.getId())).thenReturn(Optional.of(publicacion));
 
         RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> listingService.activarPublicacion(anfitrion.getId(), publicacion.getId()));
+                () -> publicacionService.activarPublicacion(anfitrion.getId(), publicacion.getId()));
 
         assertEquals("La publicación necesita al menos una imagen antes de activarse.", ex.getMessage());
     }
@@ -207,7 +208,7 @@ class ListingServiceTest {
         when(usuarioRepository.findById(anfitrion.getId())).thenReturn(Optional.of(anfitrion));
         when(publicacionRepository.findById(publicacion.getId())).thenReturn(Optional.of(publicacion));
 
-        PublicacionResponse response = listingService.activarPublicacion(anfitrion.getId(), publicacion.getId());
+        PublicacionResponse response = publicacionService.activarPublicacion(anfitrion.getId(), publicacion.getId());
 
         assertEquals("ACTIVA", response.getEstado());
     }
@@ -221,7 +222,7 @@ class ListingServiceTest {
         when(usuarioRepository.findById(anfitrion.getId())).thenReturn(Optional.of(anfitrion));
         when(publicacionRepository.findById(publicacion.getId())).thenReturn(Optional.of(publicacion));
 
-        PublicacionResponse response = listingService.pausarPublicacion(anfitrion.getId(), publicacion.getId());
+        PublicacionResponse response = publicacionService.pausarPublicacion(anfitrion.getId(), publicacion.getId());
 
         assertEquals("PAUSADA", response.getEstado());
     }
@@ -233,7 +234,7 @@ class ListingServiceTest {
         when(publicacionRepository.findById(publicacion.getId())).thenReturn(Optional.of(publicacion));
 
         assertThrows(RuntimeException.class,
-                () -> listingService.pausarPublicacion(otroAnfitrion.getId(), publicacion.getId()));
+                () -> publicacionService.pausarPublicacion(otroAnfitrion.getId(), publicacion.getId()));
     }
 
     // ---------- RF-12: consultar publicaciones de un ANFITRIÓN ----------
@@ -244,7 +245,7 @@ class ListingServiceTest {
         when(usuarioRepository.findById(anfitrion.getId())).thenReturn(Optional.of(anfitrion));
         when(publicacionRepository.findByAnfitrion(anfitrion)).thenReturn(List.of(publicacion));
 
-        List<PublicacionResponse> resultado = listingService.consultarPublicacionesDeAnfitrion(anfitrion.getId());
+        List<PublicacionResponse> resultado = publicacionService.consultarPublicacionesDeAnfitrion(anfitrion.getId());
 
         assertEquals(1, resultado.size());
     }
@@ -260,7 +261,7 @@ class ListingServiceTest {
         BloquearPublicacionRequest request = new BloquearPublicacionRequest();
         request.setMotivo("Información engañosa sobre la ubicación");
 
-        PublicacionResponse response = listingService.bloquearPublicacion(administrador.getId(), publicacion.getId(), request);
+        PublicacionResponse response = publicacionService.bloquearPublicacion(administrador.getId(), publicacion.getId(), request);
 
         assertEquals("BLOQUEADA", response.getEstado());
         verify(auditService).registrar(eq(administrador.getId()), eq("publicaciones"), eq("BLOQUEAR_PUBLICACION"), eq("EXITOSO"), any());
@@ -276,7 +277,7 @@ class ListingServiceTest {
         request.setMotivo("Cualquier motivo");
 
         assertThrows(RuntimeException.class,
-                () -> listingService.bloquearPublicacion(anfitrion.getId(), publicacion.getId(), request));
+                () -> publicacionService.bloquearPublicacion(anfitrion.getId(), publicacion.getId(), request));
     }
 
     // ---------- RF-08 (imágenes) ----------
@@ -290,7 +291,7 @@ class ListingServiceTest {
 
         MultipartFile archivo = new MockMultipartFile("archivo", "foto.jpg", "image/jpeg", "x".getBytes());
 
-        PublicacionResponse response = listingService.agregarImagen(anfitrion.getId(), publicacion.getId(), archivo);
+        PublicacionResponse response = publicacionService.agregarImagen(anfitrion.getId(), publicacion.getId(), archivo);
 
         assertEquals(1, response.getImagenes().size());
     }
@@ -304,7 +305,7 @@ class ListingServiceTest {
         MultipartFile archivo = new MockMultipartFile("archivo", "foto.jpg", "image/jpeg", "x".getBytes());
 
         assertThrows(RuntimeException.class,
-                () -> listingService.agregarImagen(otroAnfitrion.getId(), publicacion.getId(), archivo));
+                () -> publicacionService.agregarImagen(otroAnfitrion.getId(), publicacion.getId(), archivo));
     }
 
     // ---------- helper ----------

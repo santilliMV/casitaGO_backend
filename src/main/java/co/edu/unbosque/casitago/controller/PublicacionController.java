@@ -4,7 +4,7 @@ import co.edu.unbosque.casitago.dto.BloquearPublicacionRequest;
 import co.edu.unbosque.casitago.dto.PublicacionRequest;
 import co.edu.unbosque.casitago.dto.PublicacionResponse;
 import co.edu.unbosque.casitago.entity.Usuario;
-import co.edu.unbosque.casitago.service.ListingService;
+import co.edu.unbosque.casitago.service.PublicacionService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -16,19 +16,19 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/publicaciones")
-public class ListingController {
+public class PublicacionController {
 
-    private final ListingService listingService;
+    private final PublicacionService publicacionService;
 
-    public ListingController(ListingService listingService) {
-        this.listingService = listingService;
+    public PublicacionController(PublicacionService publicacionService) {
+        this.publicacionService = publicacionService;
     }
 
     @PostMapping
     public ResponseEntity<Object> crear(@Valid @RequestBody PublicacionRequest request,
                                         @AuthenticationPrincipal Usuario usuario) {
         try {
-            return ResponseEntity.ok(listingService.crearPublicacion(usuario.getId(), request));
+            return ResponseEntity.ok(publicacionService.crearPublicacion(usuario.getId(), request));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -39,7 +39,7 @@ public class ListingController {
                                          @Valid @RequestBody PublicacionRequest request,
                                          @AuthenticationPrincipal Usuario usuario) {
         try {
-            return ResponseEntity.ok(listingService.editarPublicacion(usuario.getId(), id, request));
+            return ResponseEntity.ok(publicacionService.editarPublicacion(usuario.getId(), id, request));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -48,7 +48,7 @@ public class ListingController {
     @PatchMapping("/{id}/activar")
     public ResponseEntity<Object> activar(@PathVariable UUID id, @AuthenticationPrincipal Usuario usuario) {
         try {
-            return ResponseEntity.ok(listingService.activarPublicacion(usuario.getId(), id));
+            return ResponseEntity.ok(publicacionService.activarPublicacion(usuario.getId(), id));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -57,7 +57,7 @@ public class ListingController {
     @PatchMapping("/{id}/pausar")
     public ResponseEntity<Object> pausar(@PathVariable UUID id, @AuthenticationPrincipal Usuario usuario) {
         try {
-            return ResponseEntity.ok(listingService.pausarPublicacion(usuario.getId(), id));
+            return ResponseEntity.ok(publicacionService.pausarPublicacion(usuario.getId(), id));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -66,7 +66,7 @@ public class ListingController {
     @GetMapping("/mias")
     public ResponseEntity<Object> misPublicaciones(@AuthenticationPrincipal Usuario usuario) {
         try {
-            List<PublicacionResponse> publicaciones = listingService.consultarPublicacionesDeAnfitrion(usuario.getId());
+            List<PublicacionResponse> publicaciones = publicacionService.consultarPublicacionesDeAnfitrion(usuario.getId());
             return ResponseEntity.ok(publicaciones);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -78,7 +78,7 @@ public class ListingController {
                                            @Valid @RequestBody BloquearPublicacionRequest request,
                                            @AuthenticationPrincipal Usuario usuario) {
         try {
-            return ResponseEntity.ok(listingService.bloquearPublicacion(usuario.getId(), id, request));
+            return ResponseEntity.ok(publicacionService.bloquearPublicacion(usuario.getId(), id, request));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -89,7 +89,7 @@ public class ListingController {
                                                 @RequestParam("archivo") MultipartFile archivo,
                                                 @AuthenticationPrincipal Usuario usuario) {
         try {
-            return ResponseEntity.ok(listingService.agregarImagen(usuario.getId(), id, archivo));
+            return ResponseEntity.ok(publicacionService.agregarImagen(usuario.getId(), id, archivo));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

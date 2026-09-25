@@ -28,6 +28,16 @@ public abstract class DatosPublicacion {
     @Positive(message = "El precio por noche debe ser positivo")
     private BigDecimal precioNoche;
 
+    private String ciudad;
+
+    public String getCiudad() {
+        return ciudad;
+    }
+
+    public void setCiudad(String ciudad) {
+        this.ciudad = ciudad;
+    }
+
     public String getTitulo() {
         return titulo;
     }
