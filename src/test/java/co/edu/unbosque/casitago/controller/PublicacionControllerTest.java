@@ -7,7 +7,7 @@ import co.edu.unbosque.casitago.dto.PublicacionResponse;
 import co.edu.unbosque.casitago.entity.RolUsuario;
 import co.edu.unbosque.casitago.entity.Usuario;
 import co.edu.unbosque.casitago.repository.UsuarioRepository;
-import co.edu.unbosque.casitago.service.ListingService;
+import co.edu.unbosque.casitago.service.PublicacionService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -30,9 +30,9 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(controllers = ListingController.class)
+@WebMvcTest(controllers = PublicacionController.class)
 @AutoConfigureMockMvc(addFilters = false)
-class ListingControllerTest {
+class PublicacionControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -41,7 +41,7 @@ class ListingControllerTest {
     private ObjectMapper objectMapper;
 
     @MockitoBean
-    private ListingService listingService;
+    private PublicacionService publicacionService;
 
     @MockitoBean
     private JwtService jwtService;
@@ -94,7 +94,7 @@ class ListingControllerTest {
         autenticarComo(usuarioDePrueba(usuarioId, RolUsuario.ANFITRION));
 
         UUID publicacionId = UUID.randomUUID();
-        when(listingService.crearPublicacion(any(), any(PublicacionRequest.class)))
+        when(publicacionService.crearPublicacion(any(), any(PublicacionRequest.class)))
                 .thenReturn(respuestaDePrueba(publicacionId, "BORRADOR"));
 
         String body = objectMapper.writeValueAsString(requestValido());
@@ -126,7 +126,7 @@ class ListingControllerTest {
         UUID usuarioId = UUID.randomUUID();
         autenticarComo(usuarioDePrueba(usuarioId, RolUsuario.HUESPED));
 
-        when(listingService.crearPublicacion(any(), any(PublicacionRequest.class)))
+        when(publicacionService.crearPublicacion(any(), any(PublicacionRequest.class)))
                 .thenThrow(new RuntimeException("Solo un usuario con rol ANFITRIÓN puede crear publicaciones."));
 
         String body = objectMapper.writeValueAsString(requestValido());
@@ -146,7 +146,7 @@ class ListingControllerTest {
         autenticarComo(usuarioDePrueba(usuarioId, RolUsuario.ANFITRION));
 
         UUID publicacionId = UUID.randomUUID();
-        when(listingService.editarPublicacion(any(), any(), any(PublicacionRequest.class)))
+        when(publicacionService.editarPublicacion(any(), any(), any(PublicacionRequest.class)))
                 .thenReturn(respuestaDePrueba(publicacionId, "BORRADOR"));
 
         String body = objectMapper.writeValueAsString(requestValido());
@@ -162,7 +162,7 @@ class ListingControllerTest {
         UUID usuarioId = UUID.randomUUID();
         autenticarComo(usuarioDePrueba(usuarioId, RolUsuario.ANFITRION));
 
-        when(listingService.editarPublicacion(any(), any(), any(PublicacionRequest.class)))
+        when(publicacionService.editarPublicacion(any(), any(), any(PublicacionRequest.class)))
                 .thenThrow(new RuntimeException("No tienes permiso para editar esta publicación."));
 
         String body = objectMapper.writeValueAsString(requestValido());
@@ -182,7 +182,7 @@ class ListingControllerTest {
         autenticarComo(usuarioDePrueba(usuarioId, RolUsuario.ANFITRION));
 
         UUID publicacionId = UUID.randomUUID();
-        when(listingService.activarPublicacion(any(), any()))
+        when(publicacionService.activarPublicacion(any(), any()))
                 .thenReturn(respuestaDePrueba(publicacionId, "ACTIVA"));
 
         mockMvc.perform(patch("/api/publicaciones/" + publicacionId + "/activar"))
@@ -195,7 +195,7 @@ class ListingControllerTest {
         UUID usuarioId = UUID.randomUUID();
         autenticarComo(usuarioDePrueba(usuarioId, RolUsuario.ANFITRION));
 
-        when(listingService.activarPublicacion(any(), any()))
+        when(publicacionService.activarPublicacion(any(), any()))
                 .thenThrow(new RuntimeException("La publicación necesita al menos una imagen antes de activarse."));
 
         mockMvc.perform(patch("/api/publicaciones/" + UUID.randomUUID() + "/activar"))
@@ -211,7 +211,7 @@ class ListingControllerTest {
         autenticarComo(usuarioDePrueba(usuarioId, RolUsuario.ANFITRION));
 
         UUID publicacionId = UUID.randomUUID();
-        when(listingService.pausarPublicacion(any(), any()))
+        when(publicacionService.pausarPublicacion(any(), any()))
                 .thenReturn(respuestaDePrueba(publicacionId, "PAUSADA"));
 
         mockMvc.perform(patch("/api/publicaciones/" + publicacionId + "/pausar"))
@@ -226,7 +226,7 @@ class ListingControllerTest {
         UUID usuarioId = UUID.randomUUID();
         autenticarComo(usuarioDePrueba(usuarioId, RolUsuario.ANFITRION));
 
-        when(listingService.consultarPublicacionesDeAnfitrion(any()))
+        when(publicacionService.consultarPublicacionesDeAnfitrion(any()))
                 .thenReturn(List.of(respuestaDePrueba(UUID.randomUUID(), "BORRADOR")));
 
         mockMvc.perform(get("/api/publicaciones/mias"))
@@ -242,7 +242,7 @@ class ListingControllerTest {
         autenticarComo(usuarioDePrueba(usuarioId, RolUsuario.ADMINISTRADOR));
 
         UUID publicacionId = UUID.randomUUID();
-        when(listingService.bloquearPublicacion(any(), any(), any(BloquearPublicacionRequest.class)))
+        when(publicacionService.bloquearPublicacion(any(), any(), any(BloquearPublicacionRequest.class)))
                 .thenReturn(respuestaDePrueba(publicacionId, "BLOQUEADA"));
 
         BloquearPublicacionRequest request = new BloquearPublicacionRequest();
@@ -261,7 +261,7 @@ class ListingControllerTest {
         UUID usuarioId = UUID.randomUUID();
         autenticarComo(usuarioDePrueba(usuarioId, RolUsuario.ANFITRION));
 
-        when(listingService.bloquearPublicacion(any(), any(), any(BloquearPublicacionRequest.class)))
+        when(publicacionService.bloquearPublicacion(any(), any(), any(BloquearPublicacionRequest.class)))
                 .thenThrow(new RuntimeException("Solo un ADMINISTRADOR puede bloquear una publicación."));
 
         BloquearPublicacionRequest request = new BloquearPublicacionRequest();
@@ -283,7 +283,7 @@ class ListingControllerTest {
         autenticarComo(usuarioDePrueba(usuarioId, RolUsuario.ANFITRION));
 
         UUID publicacionId = UUID.randomUUID();
-        when(listingService.agregarImagen(any(), any(), any()))
+        when(publicacionService.agregarImagen(any(), any(), any()))
                 .thenReturn(respuestaDePrueba(publicacionId, "BORRADOR"));
 
         MockMultipartFile archivo = new MockMultipartFile(
@@ -299,7 +299,7 @@ class ListingControllerTest {
         UUID usuarioId = UUID.randomUUID();
         autenticarComo(usuarioDePrueba(usuarioId, RolUsuario.ANFITRION));
 
-        when(listingService.agregarImagen(any(), any(), any()))
+        when(publicacionService.agregarImagen(any(), any(), any()))
                 .thenThrow(new RuntimeException("Solo el ANFITRIÓN propietario puede realizar esta acción."));
 
         MockMultipartFile archivo = new MockMultipartFile(

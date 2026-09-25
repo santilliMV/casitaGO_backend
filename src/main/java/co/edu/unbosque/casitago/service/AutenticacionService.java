@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @Service
-public class AuthService {
+public class AutenticacionService {
 
     private static final int CODIGO_LONGITUD = 6;
     private static final long CODIGO_VIGENCIA_MINUTOS = 15;
@@ -34,7 +34,7 @@ public class AuthService {
     private final EmailService emailService;
     private final AuditService auditService;
 
-    public AuthService(
+    public AutenticacionService(
             UsuarioRepository usuarioRepository,
             CodigoRecuperacionRepository codigoRecuperacionRepository,
             PasswordEncoder passwordEncoder,

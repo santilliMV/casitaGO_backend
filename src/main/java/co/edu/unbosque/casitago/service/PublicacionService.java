@@ -19,7 +19,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
-public class ListingService {
+public class PublicacionService {
 
     private static final String ENTIDAD_PUBLICACIONES = "publicaciones";
     private static final String RESULTADO_EXITOSO = "EXITOSO";
@@ -30,7 +30,7 @@ public class ListingService {
     private final AuditService auditService;
     private final ImagenStorageService imagenStorageService;
 
-    public ListingService(
+    public PublicacionService(
             PublicacionRepository publicacionRepository,
             UsuarioRepository usuarioRepository,
             AuditService auditService,
