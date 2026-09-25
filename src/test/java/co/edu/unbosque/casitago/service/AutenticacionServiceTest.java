@@ -31,7 +31,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class AuthServiceTest {
+class AutenticacionServiceTest {
 
     @Mock private UsuarioRepository usuarioRepository;
     @Mock private CodigoRecuperacionRepository codigoRecuperacionRepository;
@@ -41,11 +41,11 @@ class AuthServiceTest {
     @Mock private EmailService emailService;
     @Mock private AuditService auditService;
 
-    private AuthService authService;
+    private AutenticacionService autenticacionService;
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(
+        autenticacionService = new AutenticacionService(
                 usuarioRepository, codigoRecuperacionRepository, passwordEncoder,
                 authenticationManager, jwtService, emailService, auditService);
     }
@@ -69,7 +69,7 @@ class AuthServiceTest {
             return u;
         });
 
-        PerfilResponse response = authService.registrar(request);
+        PerfilResponse response = autenticacionService.registrar(request);
 
         assertThat(response.getNombre()).isEqualTo("Ana Ríos");
         assertThat(response.getCorreo()).isEqualTo("ana@example.com");
@@ -88,7 +88,7 @@ class AuthServiceTest {
         RegistroRequest request = new RegistroRequest("Ana", "ana@example.com", "clave12345", RolUsuario.HUESPED);
         when(usuarioRepository.existsByCorreo("ana@example.com")).thenReturn(true);
 
-        assertThatThrownBy(() -> authService.registrar(request))
+        assertThatThrownBy(() -> autenticacionService.registrar(request))
                 .isInstanceOf(RuntimeException.class);
 
         verify(usuarioRepository, never()).save(any());
@@ -98,7 +98,7 @@ class AuthServiceTest {
     void registrar_conRolAdministrador_lanzaExcepcion() {
         RegistroRequest request = new RegistroRequest("X", "x@example.com", "clave12345", RolUsuario.ADMINISTRADOR);
 
-        assertThatThrownBy(() -> authService.registrar(request))
+        assertThatThrownBy(() -> autenticacionService.registrar(request))
                 .isInstanceOf(RuntimeException.class);
 
         verify(usuarioRepository, never()).save(any());
@@ -116,7 +116,7 @@ class AuthServiceTest {
         when(jwtService.generarToken(id, "ana@example.com", "HUESPED")).thenReturn("jwt-generado");
         when(jwtService.getExpiracionSegundos()).thenReturn(1800L);
 
-        LoginResponse response = authService.login(new LoginRequest("ana@example.com", "clave12345"));
+        LoginResponse response = autenticacionService.login(new LoginRequest("ana@example.com", "clave12345"));
 
         assertThat(response.getToken()).isEqualTo("jwt-generado");
         assertThat(response.getExpiraEnSegundos()).isEqualTo(1800L);
@@ -133,7 +133,7 @@ class AuthServiceTest {
         Usuario usuario = usuarioConId(UUID.randomUUID(), "Ana", "ana@example.com", RolUsuario.HUESPED);
         when(usuarioRepository.findByCorreo("ana@example.com")).thenReturn(Optional.of(usuario));
 
-        authService.solicitarRecuperacion(new SolicitarRecuperacionRequest("ana@example.com"));
+        autenticacionService.solicitarRecuperacion(new SolicitarRecuperacionRequest("ana@example.com"));
 
         ArgumentCaptor<CodigoRecuperacion> captor = ArgumentCaptor.forClass(CodigoRecuperacion.class);
         verify(codigoRecuperacionRepository).save(captor.capture());
@@ -147,7 +147,7 @@ class AuthServiceTest {
     void solicitarRecuperacion_usuarioNoExiste_noGeneraNiEnviaNada() {
         when(usuarioRepository.findByCorreo("fantasma@example.com")).thenReturn(Optional.empty());
 
-        authService.solicitarRecuperacion(new SolicitarRecuperacionRequest("fantasma@example.com"));
+        autenticacionService.solicitarRecuperacion(new SolicitarRecuperacionRequest("fantasma@example.com"));
 
         verifyNoInteractions(codigoRecuperacionRepository, emailService);
     }
@@ -162,7 +162,7 @@ class AuthServiceTest {
                 .thenReturn(Optional.of(codigo));
         when(passwordEncoder.encode("nuevaClave123")).thenReturn("hash-nuevo");
 
-        authService.confirmarRecuperacion(new ConfirmarRecuperacionRequest("ana@example.com", "123456", "nuevaClave123"));
+        autenticacionService.confirmarRecuperacion(new ConfirmarRecuperacionRequest("ana@example.com", "123456", "nuevaClave123"));
 
         assertThat(usuario.getPassword()).isEqualTo("hash-nuevo");
         assertThat(codigo.isUsado()).isTrue();
@@ -178,7 +178,7 @@ class AuthServiceTest {
         when(codigoRecuperacionRepository.findFirstByUsuarioAndCodigoOrderByExpiraEnDesc(usuario, "123456"))
                 .thenReturn(Optional.of(codigoVencido));
 
-        assertThatThrownBy(() -> authService.confirmarRecuperacion(
+        assertThatThrownBy(() -> autenticacionService.confirmarRecuperacion(
                 new ConfirmarRecuperacionRequest("ana@example.com", "123456", "nuevaClave123")))
                 .isInstanceOf(RuntimeException.class);
 
@@ -189,7 +189,7 @@ class AuthServiceTest {
     void confirmarRecuperacion_correoInexistente_lanzaExcepcion() {
         when(usuarioRepository.findByCorreo("fantasma@example.com")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> authService.confirmarRecuperacion(
+        assertThatThrownBy(() -> autenticacionService.confirmarRecuperacion(
                 new ConfirmarRecuperacionRequest("fantasma@example.com", "123456", "nuevaClave123")))
                 .isInstanceOf(RuntimeException.class);
     }
@@ -202,7 +202,7 @@ class AuthServiceTest {
         Usuario usuario = usuarioConId(id, "Ana", "ana@example.com", RolUsuario.ANFITRION);
         when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
 
-        PerfilResponse response = authService.obtenerPerfil(id);
+        PerfilResponse response = autenticacionService.obtenerPerfil(id);
 
         assertThat(response.getId()).isEqualTo(id);
         assertThat(response.getRol()).isEqualTo(RolUsuario.ANFITRION);
@@ -213,7 +213,7 @@ class AuthServiceTest {
         UUID id = UUID.randomUUID();
         when(usuarioRepository.findById(id)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> authService.obtenerPerfil(id))
+        assertThatThrownBy(() -> autenticacionService.obtenerPerfil(id))
                 .isInstanceOf(RuntimeException.class);
     }
 
@@ -226,7 +226,7 @@ class AuthServiceTest {
         when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
         when(usuarioRepository.existsByCorreo("ana.nueva@example.com")).thenReturn(false);
 
-        PerfilResponse response = authService.actualizarPerfil(id,
+        PerfilResponse response = autenticacionService.actualizarPerfil(id,
                 new ActualizarPerfilRequest("Ana Ríos", "ana.nueva@example.com"));
 
         assertThat(response.getNombre()).isEqualTo("Ana Ríos");
@@ -240,7 +240,7 @@ class AuthServiceTest {
         when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
         when(usuarioRepository.existsByCorreo("ocupado@example.com")).thenReturn(true);
 
-        assertThatThrownBy(() -> authService.actualizarPerfil(id,
+        assertThatThrownBy(() -> autenticacionService.actualizarPerfil(id,
                 new ActualizarPerfilRequest("Ana Ríos", "ocupado@example.com")))
                 .isInstanceOf(RuntimeException.class);
     }
@@ -251,7 +251,7 @@ class AuthServiceTest {
         Usuario usuario = usuarioConId(id, "Ana", "ana@example.com", RolUsuario.HUESPED);
         when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
 
-        PerfilResponse response = authService.actualizarPerfil(id,
+        PerfilResponse response = autenticacionService.actualizarPerfil(id,
                 new ActualizarPerfilRequest("Ana Actualizada", "ana@example.com"));
 
         assertThat(response.getNombre()).isEqualTo("Ana Actualizada");
@@ -266,7 +266,7 @@ class AuthServiceTest {
         Usuario usuario = usuarioConId(id, "Ana", "ana@example.com", RolUsuario.HUESPED);
         when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
 
-        PerfilResponse response = authService.cambiarEstadoCuenta(id, new CambiarEstadoCuentaRequest(false));
+        PerfilResponse response = autenticacionService.cambiarEstadoCuenta(id, new CambiarEstadoCuentaRequest(false));
 
         assertThat(response.isActivo()).isFalse();
         assertThat(usuario.isEnabled()).isFalse();
@@ -280,7 +280,7 @@ class AuthServiceTest {
         usuario.setActivo(false);
         when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
 
-        PerfilResponse response = authService.cambiarEstadoCuenta(id, new CambiarEstadoCuentaRequest(true));
+        PerfilResponse response = autenticacionService.cambiarEstadoCuenta(id, new CambiarEstadoCuentaRequest(true));
 
         assertThat(response.isActivo()).isTrue();
         verify(auditService).registrar(id, "usuarios", "ACTIVAR_CUENTA", "EXITOSO");

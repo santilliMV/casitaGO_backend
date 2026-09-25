@@ -18,6 +18,13 @@ public class Publicacion {
     @GeneratedValue
     private UUID id;
 
+    @Column(nullable = false, length = 100)
+    private String ciudad;
+
+    private Double latitud;
+
+    private Double longitud;
+
     @ManyToOne
     @JoinColumn(name = "anfitrion_id", nullable = false)
     private Usuario anfitrion;
@@ -63,6 +70,30 @@ public class Publicacion {
     private List<ImagenPublicacion> imagenes = new ArrayList<>();
 
     // getters y setters
+
+    public String getCiudad() {
+        return ciudad;
+    }
+
+    public void setCiudad(String ciudad) {
+        this.ciudad = ciudad;
+    }
+
+    public Double getLatitud() {
+        return latitud;
+    }
+
+    public void setLatitud(Double latitud) {
+        this.latitud = latitud;
+    }
+
+    public Double getLongitud() {
+        return longitud;
+    }
+
+    public void setLongitud(Double longitud) {
+        this.longitud = longitud;
+    }
 
     public UUID getId() {
         return id;

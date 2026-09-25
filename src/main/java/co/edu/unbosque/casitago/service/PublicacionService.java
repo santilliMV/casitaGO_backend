@@ -19,7 +19,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
-public class ListingService {
+public class PublicacionService {
 
     private static final String ENTIDAD_PUBLICACIONES = "publicaciones";
     private static final String RESULTADO_EXITOSO = "EXITOSO";
@@ -30,7 +30,7 @@ public class ListingService {
     private final AuditService auditService;
     private final ImagenStorageService imagenStorageService;
 
-    public ListingService(
+    public PublicacionService(
             PublicacionRepository publicacionRepository,
             UsuarioRepository usuarioRepository,
             AuditService auditService,
@@ -54,7 +54,7 @@ public class ListingService {
         Publicacion publicacion = new Publicacion();
         publicacion.setAnfitrion(anfitrion);
         aplicarDatos(publicacion, request.getTitulo(), request.getDescripcion(), request.getUbicacionTextual(),
-                request.getTipo(), request.getCapacidad(), request.getPrecioNoche());
+                request.getCiudad(), request.getTipo(), request.getCapacidad(), request.getPrecioNoche());
         reemplazarServicios(publicacion, request.getServicios());
         reemplazarReglas(publicacion, request.getReglas());
 
@@ -75,7 +75,7 @@ public class ListingService {
         verificarPropietarioOAdministrador(usuario, publicacion);
 
         aplicarDatos(publicacion, request.getTitulo(), request.getDescripcion(), request.getUbicacionTextual(),
-                request.getTipo(), request.getCapacidad(), request.getPrecioNoche());
+                request.getCiudad(), request.getTipo(), request.getCapacidad(), request.getPrecioNoche());
         reemplazarServicios(publicacion, request.getServicios());
         reemplazarReglas(publicacion, request.getReglas());
 
@@ -173,7 +173,7 @@ public class ListingService {
     // ---------- helpers privados ----------
 
     private void aplicarDatos(Publicacion publicacion, String titulo, String descripcion, String ubicacionTextual,
-                              String tipo, Integer capacidad, BigDecimal precioNoche) {
+                              String ciudad, String tipo, Integer capacidad, BigDecimal precioNoche) {
         TipoAlojamiento tipoAlojamiento;
         try {
             tipoAlojamiento = TipoAlojamiento.valueOf(tipo);
@@ -184,6 +184,7 @@ public class ListingService {
         publicacion.setTitulo(titulo);
         publicacion.setDescripcion(descripcion);
         publicacion.setUbicacionTextual(ubicacionTextual);
+        publicacion.setCiudad(ciudad);
         publicacion.setTipo(tipoAlojamiento);
         publicacion.setCapacidad(capacidad);
         publicacion.setPrecioNoche(precioNoche);
