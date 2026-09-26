@@ -8,6 +8,7 @@ import co.edu.unbosque.casitago.entity.TipoAlojamiento;
 import co.edu.unbosque.casitago.repository.PeriodoDisponibilidadRepository;
 import co.edu.unbosque.casitago.repository.PublicacionRepository;
 import org.springframework.stereotype.Service;
+import co.edu.unbosque.casitago.repository.ReservaRepository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -21,14 +22,17 @@ public class BusquedaService {
     private final PublicacionRepository publicacionRepository;
     private final PeriodoDisponibilidadRepository periodoRepository;
     private final GeocodificacionService geocodificacionService;
+    private final ReservaRepository reservaRepository;
 
     public BusquedaService(
             PublicacionRepository publicacionRepository,
             PeriodoDisponibilidadRepository periodoRepository,
+            ReservaRepository reservaRepository,
             GeocodificacionService geocodificacionService
     ) {
         this.publicacionRepository = publicacionRepository;
         this.periodoRepository = periodoRepository;
+        this.reservaRepository = reservaRepository;
         this.geocodificacionService = geocodificacionService;
     }
 
@@ -64,8 +68,12 @@ public class BusquedaService {
 
         List<PublicacionResponse> respuesta = new ArrayList<>();
         for (Publicacion publicacion : publicaciones) {
-            if (desde != null && !periodoRepository.buscarSolapados(publicacion.getId(), desde, hasta).isEmpty()) {
-                continue;
+            if (desde != null) {
+                boolean bloqueado = !periodoRepository.buscarSolapados(publicacion.getId(), desde, hasta).isEmpty();
+                boolean reservado = !reservaRepository.buscarSolapadas(publicacion.getId(), desde, hasta).isEmpty();
+                if (bloqueado || reservado) {
+                    continue;
+                }
             }
             respuesta.add(PublicacionResponse.desde(publicacion));
         }

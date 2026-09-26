@@ -14,6 +14,7 @@ import co.edu.unbosque.casitago.repository.PublicacionRepository;
 import co.edu.unbosque.casitago.repository.UsuarioRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import co.edu.unbosque.casitago.repository.ReservaRepository;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -32,16 +33,19 @@ public class DisponibilidadService {
     private final PublicacionRepository publicacionRepository;
     private final UsuarioRepository usuarioRepository;
     private final AuditService auditService;
+    private final ReservaRepository reservaRepository;
 
     public DisponibilidadService(
             PeriodoDisponibilidadRepository periodoRepository,
             PublicacionRepository publicacionRepository,
             UsuarioRepository usuarioRepository,
+            ReservaRepository reservaRepository,
             AuditService auditService
     ) {
         this.periodoRepository = periodoRepository;
         this.publicacionRepository = publicacionRepository;
         this.usuarioRepository = usuarioRepository;
+        this.reservaRepository = reservaRepository;
         this.auditService = auditService;
     }
 
@@ -127,7 +131,8 @@ public class DisponibilidadService {
         }
 
         List<PeriodoDisponibilidad> solapados = periodoRepository.buscarSolapados(publicacionId, desde, hasta);
-        if (!solapados.isEmpty()) {
+        boolean reservado = !reservaRepository.buscarSolapadas(publicacionId, desde, hasta).isEmpty();
+        if (!solapados.isEmpty() || reservado) {
             respuesta.setDisponible(false);
             respuesta.setMotivo("El alojamiento no está disponible en esas fechas.");
             return respuesta;

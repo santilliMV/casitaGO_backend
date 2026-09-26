@@ -7,6 +7,7 @@ import co.edu.unbosque.casitago.dto.PeriodoResponse;
 import co.edu.unbosque.casitago.entity.*;
 import co.edu.unbosque.casitago.repository.PeriodoDisponibilidadRepository;
 import co.edu.unbosque.casitago.repository.PublicacionRepository;
+import co.edu.unbosque.casitago.repository.ReservaRepository;
 import co.edu.unbosque.casitago.repository.UsuarioRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,6 +38,9 @@ class DisponibilidadServiceTest {
 
     @Mock
     private UsuarioRepository usuarioRepository;
+
+    @Mock
+    private ReservaRepository reservaRepository;
 
     @Mock
     private AuditService auditService;
@@ -276,6 +280,7 @@ class DisponibilidadServiceTest {
         Publicacion publicacion = publicacionExistente(anfitrion, EstadoPublicacion.ACTIVA);
         when(publicacionRepository.findById(publicacion.getId())).thenReturn(Optional.of(publicacion));
         when(periodoRepository.buscarSolapados(publicacion.getId(), inicio, fin)).thenReturn(List.of());
+        when(reservaRepository.buscarSolapadas(publicacion.getId(), inicio, fin)).thenReturn(List.of());
 
         DisponibilidadResponse response = disponibilidadService.consultarDisponibilidad(publicacion.getId(), inicio, fin);
 
@@ -303,6 +308,21 @@ class DisponibilidadServiceTest {
         when(publicacionRepository.findById(publicacion.getId())).thenReturn(Optional.of(publicacion));
         when(periodoRepository.buscarSolapados(publicacion.getId(), inicio, fin))
                 .thenReturn(List.of(periodoExistente(publicacion, EstadoPeriodo.RESERVADO)));
+        when(reservaRepository.buscarSolapadas(publicacion.getId(), inicio, fin)).thenReturn(List.of());
+
+        DisponibilidadResponse response = disponibilidadService.consultarDisponibilidad(publicacion.getId(), inicio, fin);
+
+        assertFalse(response.isDisponible());
+        assertEquals("El alojamiento no está disponible en esas fechas.", response.getMotivo());
+    }
+
+    @Test
+    void consultarDisponibilidad_conReservaSolapada_deberiaNoEstarDisponible() {
+        Publicacion publicacion = publicacionExistente(anfitrion, EstadoPublicacion.ACTIVA);
+        when(publicacionRepository.findById(publicacion.getId())).thenReturn(Optional.of(publicacion));
+        when(periodoRepository.buscarSolapados(publicacion.getId(), inicio, fin)).thenReturn(List.of());
+        when(reservaRepository.buscarSolapadas(publicacion.getId(), inicio, fin))
+                .thenReturn(List.of(new Reserva()));
 
         DisponibilidadResponse response = disponibilidadService.consultarDisponibilidad(publicacion.getId(), inicio, fin);
 

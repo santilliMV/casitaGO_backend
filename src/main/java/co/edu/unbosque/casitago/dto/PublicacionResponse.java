@@ -28,6 +28,7 @@ public class PublicacionResponse extends DatosPublicacion {
         response.setTitulo(publicacion.getTitulo());
         response.setDescripcion(publicacion.getDescripcion());
         response.setUbicacionTextual(publicacion.getUbicacionTextual());
+        response.setCiudad(publicacion.getCiudad());
         response.setTipo(publicacion.getTipo().name());
         response.setCapacidad(publicacion.getCapacidad());
         response.setPrecioNoche(publicacion.getPrecioNoche());
