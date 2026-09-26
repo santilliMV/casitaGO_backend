@@ -5,16 +5,10 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
-import java.util.UUID;
 
 @Entity
 @Table(name = "reservas")
-public class Reserva {
-
-    @Id
-    @GeneratedValue
-    private UUID id;
+public class Reserva extends EntidadRegistrada {
 
     @ManyToOne
     @JoinColumn(name = "huesped_id", nullable = false)
@@ -41,17 +35,6 @@ public class Reserva {
 
     @Column(name = "idempotency_key", nullable = false, unique = true)
     private String idempotencyKey;
-
-    @Column(name = "creado_en", nullable = false)
-    private OffsetDateTime creadoEn = OffsetDateTime.now();
-
-    public UUID getId() {
-        return id;
-    }
-
-    public void setId(UUID id) {
-        this.id = id;
-    }
 
     public Usuario getHuesped() {
         return huesped;
@@ -107,13 +90,5 @@ public class Reserva {
 
     public void setIdempotencyKey(String idempotencyKey) {
         this.idempotencyKey = idempotencyKey;
-    }
-
-    public OffsetDateTime getCreadoEn() {
-        return creadoEn;
-    }
-
-    public void setCreadoEn(OffsetDateTime creadoEn) {
-        this.creadoEn = creadoEn;
     }
 }

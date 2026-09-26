@@ -3,16 +3,10 @@ package co.edu.unbosque.casitago.entity;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
-import java.util.UUID;
 
 @Entity
 @Table(name = "cotizaciones")
-public class Cotizacion {
-
-    @Id
-    @GeneratedValue
-    private UUID id;
+public class Cotizacion extends EntidadRegistrada {
 
     @ManyToOne
     @JoinColumn(name = "publicacion_id", nullable = false)
@@ -35,17 +29,6 @@ public class Cotizacion {
 
     @Column(nullable = false)
     private BigDecimal total;
-
-    @Column(name = "creado_en", nullable = false)
-    private OffsetDateTime creadoEn = OffsetDateTime.now();
-
-    public UUID getId() {
-        return id;
-    }
-
-    public void setId(UUID id) {
-        this.id = id;
-    }
 
     public Publicacion getPublicacion() {
         return publicacion;
@@ -101,13 +84,5 @@ public class Cotizacion {
 
     public void setTotal(BigDecimal total) {
         this.total = total;
-    }
-
-    public OffsetDateTime getCreadoEn() {
-        return creadoEn;
-    }
-
-    public void setCreadoEn(OffsetDateTime creadoEn) {
-        this.creadoEn = creadoEn;
     }
 }

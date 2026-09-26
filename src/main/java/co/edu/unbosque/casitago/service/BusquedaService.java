@@ -40,44 +40,56 @@ public class BusquedaService {
     public List<PublicacionResponse> buscar(String ciudad, LocalDate desde, LocalDate hasta, Integer capacidad,
                                             String tipoTexto, BigDecimal precioMin, BigDecimal precioMax,
                                             List<String> servicios) {
-        TipoAlojamiento tipo = null;
-        if (tipoTexto != null) {
-            try {
-                tipo = TipoAlojamiento.valueOf(tipoTexto);
-            } catch (IllegalArgumentException e) {
-                throw new RuntimeException("El tipo de alojamiento indicado no es válido.");
-            }
-        }
-
-        if ((desde == null) != (hasta == null)) {
-            throw new RuntimeException("Debes indicar ambas fechas (desde y hasta) o ninguna.");
-        }
-        if (desde != null && !hasta.isAfter(desde)) {
-            throw new RuntimeException("La fecha de fin debe ser posterior a la fecha de inicio.");
-        }
-
-        List<String> serviciosMinuscula = new ArrayList<>();
-        if (servicios != null) {
-            for (String servicio : servicios) {
-                serviciosMinuscula.add(servicio.toLowerCase());
-            }
-        }
+        TipoAlojamiento tipo = resolverTipo(tipoTexto);
+        validarFechas(desde, hasta);
+        List<String> serviciosMinuscula = normalizarServicios(servicios);
 
         List<Publicacion> publicaciones = publicacionRepository.buscarActivas(
                 ciudad, tipo, capacidad, precioMin, precioMax, serviciosMinuscula, serviciosMinuscula.size());
 
         List<PublicacionResponse> respuesta = new ArrayList<>();
         for (Publicacion publicacion : publicaciones) {
-            if (desde != null) {
-                boolean bloqueado = !periodoRepository.buscarSolapados(publicacion.getId(), desde, hasta).isEmpty();
-                boolean reservado = !reservaRepository.buscarSolapadas(publicacion.getId(), desde, hasta).isEmpty();
-                if (bloqueado || reservado) {
-                    continue;
-                }
+            if (desde == null || estaDisponibleEnFechas(publicacion.getId(), desde, hasta)) {
+                respuesta.add(PublicacionResponse.desde(publicacion));
             }
-            respuesta.add(PublicacionResponse.desde(publicacion));
         }
         return respuesta;
+    }
+
+    private TipoAlojamiento resolverTipo(String tipoTexto) {
+        if (tipoTexto == null) {
+            return null;
+        }
+        try {
+            return TipoAlojamiento.valueOf(tipoTexto);
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("El tipo de alojamiento indicado no es válido.");
+        }
+    }
+
+    private void validarFechas(LocalDate desde, LocalDate hasta) {
+        if ((desde == null) != (hasta == null)) {
+            throw new RuntimeException("Debes indicar ambas fechas (desde y hasta) o ninguna.");
+        }
+        if (desde != null && !hasta.isAfter(desde)) {
+            throw new RuntimeException("La fecha de fin debe ser posterior a la fecha de inicio.");
+        }
+    }
+
+    private List<String> normalizarServicios(List<String> servicios) {
+        List<String> serviciosMinuscula = new ArrayList<>();
+        if (servicios != null) {
+            for (String servicio : servicios) {
+                serviciosMinuscula.add(servicio.toLowerCase());
+            }
+        }
+        return serviciosMinuscula;
+    }
+
+    private boolean estaDisponibleEnFechas(UUID publicacionId, LocalDate desde, LocalDate hasta) {
+        boolean bloqueado = !periodoRepository.buscarSolapados(publicacionId, desde, hasta).isEmpty();
+        boolean reservado = !reservaRepository.buscarSolapadas(publicacionId, desde, hasta).isEmpty();
+        return !bloqueado && !reservado;
     }
 
     // ---------- RF-16: consultar detalle de un alojamiento ----------

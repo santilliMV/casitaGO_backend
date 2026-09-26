@@ -5,16 +5,10 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
-import java.util.UUID;
 
 @Entity
 @Table(name = "cancelaciones")
-public class Cancelacion {
-
-    @Id
-    @GeneratedValue
-    private UUID id;
+public class Cancelacion extends EntidadRegistrada {
 
     @ManyToOne
     @JoinColumn(name = "reserva_id", nullable = false)
@@ -34,17 +28,6 @@ public class Cancelacion {
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "estado_final", nullable = false)
     private EstadoReserva estadoFinal;
-
-    @Column(name = "creado_en", nullable = false)
-    private OffsetDateTime creadoEn = OffsetDateTime.now();
-
-    public UUID getId() {
-        return id;
-    }
-
-    public void setId(UUID id) {
-        this.id = id;
-    }
 
     public Reserva getReserva() {
         return reserva;
@@ -84,13 +67,5 @@ public class Cancelacion {
 
     public void setEstadoFinal(EstadoReserva estadoFinal) {
         this.estadoFinal = estadoFinal;
-    }
-
-    public OffsetDateTime getCreadoEn() {
-        return creadoEn;
-    }
-
-    public void setCreadoEn(OffsetDateTime creadoEn) {
-        this.creadoEn = creadoEn;
     }
 }

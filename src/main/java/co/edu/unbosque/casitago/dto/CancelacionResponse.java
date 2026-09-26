@@ -4,35 +4,24 @@ import co.edu.unbosque.casitago.entity.Cancelacion;
 import co.edu.unbosque.casitago.entity.EstadoReserva;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
 import java.util.UUID;
 
-public class CancelacionResponse {
+public class CancelacionResponse extends RespuestaConMarcaDeTiempo {
 
-    private UUID id;
     private UUID reservaId;
     private String motivo;
     private BigDecimal valorDevolucion;
     private EstadoReserva estadoFinal;
-    private OffsetDateTime creadoEn;
 
     public static CancelacionResponse desde(Cancelacion cancelacion) {
         CancelacionResponse response = new CancelacionResponse();
-        response.id = cancelacion.getId();
+        response.setId(cancelacion.getId());
         response.reservaId = cancelacion.getReserva().getId();
         response.motivo = cancelacion.getMotivo();
         response.valorDevolucion = cancelacion.getValorDevolucion();
         response.estadoFinal = cancelacion.getEstadoFinal();
-        response.creadoEn = cancelacion.getCreadoEn();
+        response.setCreadoEn(cancelacion.getCreadoEn());
         return response;
-    }
-
-    public UUID getId() {
-        return id;
-    }
-
-    public void setId(UUID id) {
-        this.id = id;
     }
 
     public UUID getReservaId() {
@@ -65,13 +54,5 @@ public class CancelacionResponse {
 
     public void setEstadoFinal(EstadoReserva estadoFinal) {
         this.estadoFinal = estadoFinal;
-    }
-
-    public OffsetDateTime getCreadoEn() {
-        return creadoEn;
-    }
-
-    public void setCreadoEn(OffsetDateTime creadoEn) {
-        this.creadoEn = creadoEn;
     }
 }

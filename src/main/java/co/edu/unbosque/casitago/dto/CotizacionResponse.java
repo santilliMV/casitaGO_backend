@@ -3,12 +3,10 @@ package co.edu.unbosque.casitago.dto;
 import co.edu.unbosque.casitago.entity.Cotizacion;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
 import java.util.UUID;
 
-public class CotizacionResponse {
+public class CotizacionResponse extends RespuestaConMarcaDeTiempo {
 
-    private UUID id;
     private UUID publicacionId;
     private Integer noches;
     private BigDecimal precioBase;
@@ -16,11 +14,10 @@ public class CotizacionResponse {
     private BigDecimal tarifaServicio;
     private BigDecimal serviciosAdicionales;
     private BigDecimal total;
-    private OffsetDateTime creadoEn;
 
     public static CotizacionResponse desde(Cotizacion cotizacion) {
         CotizacionResponse response = new CotizacionResponse();
-        response.id = cotizacion.getId();
+        response.setId(cotizacion.getId());
         response.publicacionId = cotizacion.getPublicacion().getId();
         response.noches = cotizacion.getNoches();
         response.precioBase = cotizacion.getPrecioBase();
@@ -28,16 +25,8 @@ public class CotizacionResponse {
         response.tarifaServicio = cotizacion.getTarifaServicio();
         response.serviciosAdicionales = cotizacion.getServiciosAdicionales();
         response.total = cotizacion.getTotal();
-        response.creadoEn = cotizacion.getCreadoEn();
+        response.setCreadoEn(cotizacion.getCreadoEn());
         return response;
-    }
-
-    public UUID getId() {
-        return id;
-    }
-
-    public void setId(UUID id) {
-        this.id = id;
     }
 
     public UUID getPublicacionId() {
@@ -94,13 +83,5 @@ public class CotizacionResponse {
 
     public void setTotal(BigDecimal total) {
         this.total = total;
-    }
-
-    public OffsetDateTime getCreadoEn() {
-        return creadoEn;
-    }
-
-    public void setCreadoEn(OffsetDateTime creadoEn) {
-        this.creadoEn = creadoEn;
     }
 }
