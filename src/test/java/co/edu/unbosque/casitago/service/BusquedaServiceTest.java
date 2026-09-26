@@ -5,6 +5,7 @@ import co.edu.unbosque.casitago.dto.UbicacionResponse;
 import co.edu.unbosque.casitago.entity.*;
 import co.edu.unbosque.casitago.repository.PeriodoDisponibilidadRepository;
 import co.edu.unbosque.casitago.repository.PublicacionRepository;
+import co.edu.unbosque.casitago.repository.ReservaRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -32,6 +33,9 @@ class BusquedaServiceTest {
     private PeriodoDisponibilidadRepository periodoRepository;
 
     @Mock
+    private ReservaRepository reservaRepository;
+
+    @Mock
     private GeocodificacionService geocodificacionService;
 
     @InjectMocks
@@ -53,6 +57,7 @@ class BusquedaServiceTest {
 
         assertEquals(1, resultado.size());
         verify(periodoRepository, never()).buscarSolapados(any(), any(), any());
+        verify(reservaRepository, never()).buscarSolapadas(any(), any(), any());
     }
 
     @Test
@@ -98,6 +103,22 @@ class BusquedaServiceTest {
                 .thenReturn(List.of(publicacion));
         when(periodoRepository.buscarSolapados(publicacion.getId(), desde, hasta))
                 .thenReturn(List.of(new PeriodoDisponibilidad()));
+        when(reservaRepository.buscarSolapadas(publicacion.getId(), desde, hasta)).thenReturn(List.of());
+
+        List<PublicacionResponse> resultado = busquedaService.buscar(
+                null, desde, hasta, null, null, null, null, null);
+
+        assertTrue(resultado.isEmpty());
+    }
+
+    @Test
+    void buscar_conFechasYReservaSolapada_deberiaExcluirLaPublicacion() {
+        Publicacion publicacion = publicacionExistente();
+        when(publicacionRepository.buscarActivas(any(), any(), any(), any(), any(), any(), eq(0L)))
+                .thenReturn(List.of(publicacion));
+        when(periodoRepository.buscarSolapados(publicacion.getId(), desde, hasta)).thenReturn(List.of());
+        when(reservaRepository.buscarSolapadas(publicacion.getId(), desde, hasta))
+                .thenReturn(List.of(new Reserva()));
 
         List<PublicacionResponse> resultado = busquedaService.buscar(
                 null, desde, hasta, null, null, null, null, null);
@@ -111,6 +132,7 @@ class BusquedaServiceTest {
         when(publicacionRepository.buscarActivas(any(), any(), any(), any(), any(), any(), eq(0L)))
                 .thenReturn(List.of(publicacion));
         when(periodoRepository.buscarSolapados(publicacion.getId(), desde, hasta)).thenReturn(List.of());
+        when(reservaRepository.buscarSolapadas(publicacion.getId(), desde, hasta)).thenReturn(List.of());
 
         List<PublicacionResponse> resultado = busquedaService.buscar(
                 null, desde, hasta, null, null, null, null, null);
