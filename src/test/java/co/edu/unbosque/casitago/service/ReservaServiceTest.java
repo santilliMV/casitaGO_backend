@@ -103,6 +103,19 @@ class ReservaServiceTest {
         return cotizacion;
     }
 
+    private Reserva reservaConfirmada(Usuario huesped, Publicacion publicacion, Cotizacion cotizacion,
+                                      LocalDate llegada, LocalDate salida) {
+        Reserva reserva = new Reserva();
+        reserva.setId(UUID.randomUUID());
+        reserva.setHuesped(huesped);
+        reserva.setPublicacion(publicacion);
+        reserva.setCotizacion(cotizacion);
+        reserva.setFechaLlegada(llegada);
+        reserva.setFechaSalida(salida);
+        reserva.setEstado(EstadoReserva.CONFIRMADA);
+        return reserva;
+    }
+
     // ---------- RF-17: generar cotización ----------
 
     @Test
@@ -222,14 +235,7 @@ class ReservaServiceTest {
     void crearReserva_conIdempotencyKeyExistente_deberiaDevolverLaMisma() {
         Publicacion publicacion = publicacionActiva();
         Cotizacion cotizacion = cotizacionExistente(publicacion);
-
-        Reserva reservaExistente = new Reserva();
-        reservaExistente.setId(UUID.randomUUID());
-        reservaExistente.setPublicacion(publicacion);
-        reservaExistente.setCotizacion(cotizacion);
-        reservaExistente.setFechaLlegada(llegada);
-        reservaExistente.setFechaSalida(salida);
-        reservaExistente.setEstado(EstadoReserva.CONFIRMADA);
+        Reserva reservaExistente = reservaConfirmada(huesped, publicacion, cotizacion, llegada, salida);
 
         when(reservaRepository.findByIdempotencyKey(any())).thenReturn(Optional.of(reservaExistente));
 
@@ -307,14 +313,7 @@ class ReservaServiceTest {
     void listarPorHuesped_deberiaMapearTodasLasReservas() {
         Publicacion publicacion = publicacionActiva();
         Cotizacion cotizacion = cotizacionExistente(publicacion);
-
-        Reserva reserva = new Reserva();
-        reserva.setId(UUID.randomUUID());
-        reserva.setPublicacion(publicacion);
-        reserva.setCotizacion(cotizacion);
-        reserva.setFechaLlegada(llegada);
-        reserva.setFechaSalida(salida);
-        reserva.setEstado(EstadoReserva.CONFIRMADA);
+        Reserva reserva = reservaConfirmada(huesped, publicacion, cotizacion, llegada, salida);
         reserva.setCreadoEn(OffsetDateTime.now());
 
         when(reservaRepository.findByHuespedIdOrderByCreadoEnDesc(huesped.getId())).thenReturn(List.of(reserva));
@@ -331,15 +330,8 @@ class ReservaServiceTest {
     void cancelarReserva_conMasDeTresDiasDeAnticipacion_deberiaReembolsarTotal() {
         Publicacion publicacion = publicacionActiva();
         Cotizacion cotizacion = cotizacionExistente(publicacion);
-
-        Reserva reserva = new Reserva();
-        reserva.setId(UUID.randomUUID());
-        reserva.setHuesped(huesped);
-        reserva.setPublicacion(publicacion);
-        reserva.setCotizacion(cotizacion);
-        reserva.setFechaLlegada(LocalDate.now().plusDays(10));
-        reserva.setFechaSalida(LocalDate.now().plusDays(13));
-        reserva.setEstado(EstadoReserva.CONFIRMADA);
+        Reserva reserva = reservaConfirmada(huesped, publicacion, cotizacion,
+                LocalDate.now().plusDays(10), LocalDate.now().plusDays(13));
 
         when(reservaRepository.findById(reserva.getId())).thenReturn(Optional.of(reserva));
         when(cancelacionRepository.save(any(Cancelacion.class))).thenAnswer(inv -> {
@@ -362,15 +354,8 @@ class ReservaServiceTest {
     void cancelarReserva_conMenosDeTresDiasDeAnticipacion_noDeberiaReembolsar() {
         Publicacion publicacion = publicacionActiva();
         Cotizacion cotizacion = cotizacionExistente(publicacion);
-
-        Reserva reserva = new Reserva();
-        reserva.setId(UUID.randomUUID());
-        reserva.setHuesped(huesped);
-        reserva.setPublicacion(publicacion);
-        reserva.setCotizacion(cotizacion);
-        reserva.setFechaLlegada(LocalDate.now().plusDays(1));
-        reserva.setFechaSalida(LocalDate.now().plusDays(4));
-        reserva.setEstado(EstadoReserva.CONFIRMADA);
+        Reserva reserva = reservaConfirmada(huesped, publicacion, cotizacion,
+                LocalDate.now().plusDays(1), LocalDate.now().plusDays(4));
 
         when(reservaRepository.findById(reserva.getId())).thenReturn(Optional.of(reserva));
         when(cancelacionRepository.save(any(Cancelacion.class))).thenAnswer(inv -> {
@@ -391,18 +376,11 @@ class ReservaServiceTest {
     void cancelarReserva_deOtroHuesped_deberiaLanzarExcepcion() {
         Publicacion publicacion = publicacionActiva();
         Cotizacion cotizacion = cotizacionExistente(publicacion);
+        Reserva reserva = reservaConfirmada(huesped, publicacion, cotizacion,
+                LocalDate.now().plusDays(10), LocalDate.now().plusDays(13));
 
         Usuario otroHuesped = new Usuario("Otro Huesped", "otro@correo.com", "hash", RolUsuario.HUESPED);
         ReflectionTestUtils.setField(otroHuesped, "id", UUID.randomUUID());
-
-        Reserva reserva = new Reserva();
-        reserva.setId(UUID.randomUUID());
-        reserva.setHuesped(huesped);
-        reserva.setPublicacion(publicacion);
-        reserva.setCotizacion(cotizacion);
-        reserva.setFechaLlegada(LocalDate.now().plusDays(10));
-        reserva.setFechaSalida(LocalDate.now().plusDays(13));
-        reserva.setEstado(EstadoReserva.CONFIRMADA);
 
         when(reservaRepository.findById(reserva.getId())).thenReturn(Optional.of(reserva));
 
@@ -420,14 +398,8 @@ class ReservaServiceTest {
     void cancelarReserva_yaCancelada_deberiaLanzarExcepcion() {
         Publicacion publicacion = publicacionActiva();
         Cotizacion cotizacion = cotizacionExistente(publicacion);
-
-        Reserva reserva = new Reserva();
-        reserva.setId(UUID.randomUUID());
-        reserva.setHuesped(huesped);
-        reserva.setPublicacion(publicacion);
-        reserva.setCotizacion(cotizacion);
-        reserva.setFechaLlegada(LocalDate.now().plusDays(10));
-        reserva.setFechaSalida(LocalDate.now().plusDays(13));
+        Reserva reserva = reservaConfirmada(huesped, publicacion, cotizacion,
+                LocalDate.now().plusDays(10), LocalDate.now().plusDays(13));
         reserva.setEstado(EstadoReserva.CANCELADA);
 
         when(reservaRepository.findById(reserva.getId())).thenReturn(Optional.of(reserva));

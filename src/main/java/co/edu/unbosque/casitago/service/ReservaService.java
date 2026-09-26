@@ -8,7 +8,6 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
@@ -40,15 +39,7 @@ public class ReservaService {
         Publicacion publicacion = publicacionRepository.findById(request.getPublicacionId())
                 .orElseThrow(() -> new RuntimeException("La publicación no existe"));
 
-        if (publicacion.getEstado() != EstadoPublicacion.ACTIVA) {
-            throw new RuntimeException("La publicación no está activa");
-        }
-
-        if (!request.getFechaSalida().isAfter(request.getFechaLlegada())) {
-            throw new RuntimeException("La fecha de salida debe ser posterior a la fecha de llegada");
-        }
-
-        verificarDisponibilidad(publicacion.getId(), request.getFechaLlegada(), request.getFechaSalida());
+        validarPublicacionYFechas(publicacion, request.getFechaLlegada(), request.getFechaSalida());
 
         long noches = ChronoUnit.DAYS.between(request.getFechaLlegada(), request.getFechaSalida());
         BigDecimal precioBase = publicacion.getPrecioNoche().multiply(BigDecimal.valueOf(noches));
@@ -83,16 +74,7 @@ public class ReservaService {
 
         Publicacion publicacion = cotizacion.getPublicacion();
 
-        if (publicacion.getEstado() != EstadoPublicacion.ACTIVA) {
-            throw new RuntimeException("La publicación no está activa");
-        }
-
-        if (!request.getFechaSalida().isAfter(request.getFechaLlegada())) {
-            throw new RuntimeException("La fecha de salida debe ser posterior a la fecha de llegada");
-        }
-
-        // Revalidación de disponibilidad al confirmar (RF-18)
-        verificarDisponibilidad(publicacion.getId(), request.getFechaLlegada(), request.getFechaSalida());
+        validarPublicacionYFechas(publicacion, request.getFechaLlegada(), request.getFechaSalida());
 
         Reserva reserva = new Reserva();
         reserva.setHuesped(huesped);
@@ -106,7 +88,6 @@ public class ReservaService {
         try {
             reserva = reservaRepository.save(reserva);
         } catch (RuntimeException e) {
-            // Respaldo final ante condiciones de carrera: restricción no_solapamiento de la BD (RNF-05)
             throw new RuntimeException("Las fechas ya no están disponibles, alguien más reservó primero");
         }
 
@@ -148,6 +129,16 @@ public class ReservaService {
 
         cancelacion = cancelacionRepository.save(cancelacion);
         return CancelacionResponse.desde(cancelacion);
+    }
+
+    private void validarPublicacionYFechas(Publicacion publicacion, LocalDate llegada, LocalDate salida) {
+        if (publicacion.getEstado() != EstadoPublicacion.ACTIVA) {
+            throw new RuntimeException("La publicación no está activa");
+        }
+        if (!salida.isAfter(llegada)) {
+            throw new RuntimeException("La fecha de salida debe ser posterior a la fecha de llegada");
+        }
+        verificarDisponibilidad(publicacion.getId(), llegada, salida);
     }
 
     private void verificarDisponibilidad(UUID publicacionId, LocalDate inicio, LocalDate fin) {
