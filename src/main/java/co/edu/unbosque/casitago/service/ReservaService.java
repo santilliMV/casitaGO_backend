@@ -35,6 +35,9 @@ public class ReservaService {
     @Autowired
     private CancelacionRepository cancelacionRepository;
 
+    @Autowired
+    private NotificacionService notificacionService;
+
     public CotizacionResponse generarCotizacion(CotizacionRequest request) {
         Publicacion publicacion = publicacionRepository.findById(request.getPublicacionId())
                 .orElseThrow(() -> new RuntimeException("La publicación no existe"));
@@ -91,6 +94,13 @@ public class ReservaService {
             throw new RuntimeException("Las fechas ya no están disponibles, alguien más reservó primero");
         }
 
+        String detalle = "\"" + publicacion.getTitulo() + "\" del "
+                + reserva.getFechaLlegada() + " al " + reserva.getFechaSalida();
+        notificacionService.crear(huesped, "RESERVA_CONFIRMADA",
+                "Tu reserva en " + detalle + " fue confirmada");
+        notificacionService.crear(publicacion.getAnfitrion(), "RESERVA_CONFIRMADA",
+                "Tienes una nueva reserva en " + detalle);
+
         return ReservaResponse.desde(reserva);
     }
 
@@ -128,6 +138,15 @@ public class ReservaService {
         cancelacion.setEstadoFinal(EstadoReserva.CANCELADA);
 
         cancelacion = cancelacionRepository.save(cancelacion);
+
+        Publicacion publicacion = reserva.getPublicacion();
+        String detalle = "\"" + publicacion.getTitulo() + "\" del "
+                + reserva.getFechaLlegada() + " al " + reserva.getFechaSalida();
+        notificacionService.crear(usuario, "RESERVA_CANCELADA",
+                "Cancelaste tu reserva en " + detalle);
+        notificacionService.crear(publicacion.getAnfitrion(), "RESERVA_CANCELADA",
+                "Se canceló una reserva en " + detalle);
+
         return CancelacionResponse.desde(cancelacion);
     }
 

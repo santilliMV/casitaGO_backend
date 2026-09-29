@@ -19,6 +19,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -51,6 +53,9 @@ class ReservaServiceTest {
 
     @InjectMocks
     private ReservaService reservaService;
+
+    @Mock
+    private NotificacionService notificacionService;
 
     private Usuario huesped;
     private Usuario anfitrion;
@@ -229,6 +234,8 @@ class ReservaServiceTest {
 
         assertEquals(EstadoReserva.CONFIRMADA, response.getEstado());
         assertEquals(0, cotizacion.getTotal().compareTo(response.getTotal()));
+        verify(notificacionService).crear(eq(huesped), eq("RESERVA_CONFIRMADA"), anyString());
+        verify(notificacionService).crear(eq(anfitrion), eq("RESERVA_CONFIRMADA"), anyString());
     }
 
     @Test
@@ -348,6 +355,8 @@ class ReservaServiceTest {
         assertEquals(0, cotizacion.getTotal().compareTo(response.getValorDevolucion()));
         assertEquals(EstadoReserva.CANCELADA, response.getEstadoFinal());
         assertEquals(EstadoReserva.CANCELADA, reserva.getEstado());
+        verify(notificacionService).crear(eq(huesped), eq("RESERVA_CANCELADA"), anyString());
+        verify(notificacionService).crear(eq(anfitrion), eq("RESERVA_CANCELADA"), anyString());
     }
 
     @Test
@@ -370,6 +379,8 @@ class ReservaServiceTest {
         CancelacionResponse response = reservaService.cancelarReserva(reserva.getId(), huesped, request);
 
         assertEquals(0, BigDecimal.ZERO.compareTo(response.getValorDevolucion()));
+        verify(notificacionService).crear(eq(huesped), eq("RESERVA_CANCELADA"), anyString());
+        verify(notificacionService).crear(eq(anfitrion), eq("RESERVA_CANCELADA"), anyString());
     }
 
     @Test
