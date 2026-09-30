@@ -13,6 +13,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import co.edu.unbosque.casitago.repository.RestriccionUsuarioRepository;
 
 import java.security.SecureRandom;
 import java.time.OffsetDateTime;
@@ -33,6 +34,8 @@ public class AutenticacionService {
     private final JwtService jwtService;
     private final EmailService emailService;
     private final AuditService auditService;
+    private final RestriccionUsuarioRepository restriccionUsuarioRepository;
+
 
     public AutenticacionService(
             UsuarioRepository usuarioRepository,
@@ -41,7 +44,8 @@ public class AutenticacionService {
             AuthenticationManager authenticationManager,
             JwtService jwtService,
             EmailService emailService,
-            AuditService auditService
+            AuditService auditService,
+            RestriccionUsuarioRepository restriccionUsuarioRepository
     ) {
         this.usuarioRepository = usuarioRepository;
         this.codigoRecuperacionRepository = codigoRecuperacionRepository;
@@ -50,6 +54,7 @@ public class AutenticacionService {
         this.jwtService = jwtService;
         this.emailService = emailService;
         this.auditService = auditService;
+        this.restriccionUsuarioRepository = restriccionUsuarioRepository;
     }
 
     // ---------- RF-01: registro ----------
@@ -159,6 +164,11 @@ public class AutenticacionService {
     @Transactional
     public PerfilResponse cambiarEstadoCuenta(UUID usuarioId, CambiarEstadoCuentaRequest request) {
         Usuario usuario = buscarPorId(usuarioId);
+
+        if (request.getActivo() && restriccionUsuarioRepository.existsByUsuarioIdAndActivaTrue(usuarioId)) {
+            throw new RuntimeException("Tu cuenta tiene una restricción activa y no puede reactivarse.");
+        }
+
         usuario.setActivo(request.getActivo());
 
         auditService.registrar(usuario.getId(), "usuarios",

@@ -66,4 +66,28 @@ public class EventoAuditoria {
     public UUID getId() {
         return id;
     }
+
+    public UUID getUsuarioId() {
+        return usuarioId;
+    }
+
+    public String getEntidad() {
+        return entidad;
+    }
+
+    public String getAccion() {
+        return accion;
+    }
+
+    public String getResultado() {
+        return resultado;
+    }
+
+    public Map<String, Object> getDetalle() {
+        return detalle;
+    }
+
+    public OffsetDateTime getCreadoEn() {
+        return creadoEn;
+    }
 }

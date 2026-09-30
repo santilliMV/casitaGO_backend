@@ -7,6 +7,7 @@ import co.edu.unbosque.casitago.entity.CodigoRecuperacion;
 import co.edu.unbosque.casitago.entity.RolUsuario;
 import co.edu.unbosque.casitago.entity.Usuario;
 import co.edu.unbosque.casitago.repository.CodigoRecuperacionRepository;
+import co.edu.unbosque.casitago.repository.RestriccionUsuarioRepository;
 import co.edu.unbosque.casitago.repository.UsuarioRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,6 +41,8 @@ class AutenticacionServiceTest {
     @Mock private JwtService jwtService;
     @Mock private EmailService emailService;
     @Mock private AuditService auditService;
+    @Mock
+    private RestriccionUsuarioRepository restriccionUsuarioRepository;
 
     private AutenticacionService autenticacionService;
 
@@ -47,7 +50,7 @@ class AutenticacionServiceTest {
     void setUp() {
         autenticacionService = new AutenticacionService(
                 usuarioRepository, codigoRecuperacionRepository, passwordEncoder,
-                authenticationManager, jwtService, emailService, auditService);
+                authenticationManager, jwtService, emailService, auditService, restriccionUsuarioRepository);
     }
 
     private Usuario usuarioConId(UUID id, String nombre, String correo, RolUsuario rol) {
@@ -271,6 +274,21 @@ class AutenticacionServiceTest {
         assertThat(response.isActivo()).isFalse();
         assertThat(usuario.isEnabled()).isFalse();
         verify(auditService).registrar(id, "usuarios", "DESACTIVAR_CUENTA", "EXITOSO");
+    }
+
+    @Test
+    void cambiarEstadoCuenta_reactivarConRestriccionActiva_lanzaExcepcion() {
+        UUID id = UUID.randomUUID();
+        Usuario usuario = usuarioConId(id, "Ana", "ana@example.com", RolUsuario.HUESPED);
+        usuario.setActivo(false);
+        when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
+        when(restriccionUsuarioRepository.existsByUsuarioIdAndActivaTrue(id)).thenReturn(true);
+
+        assertThatThrownBy(() -> autenticacionService.cambiarEstadoCuenta(id, new CambiarEstadoCuentaRequest(true)))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("Tu cuenta tiene una restricción activa y no puede reactivarse.");
+
+        assertThat(usuario.isEnabled()).isFalse();
     }
 
     @Test
