@@ -46,6 +46,9 @@ public class Usuario implements UserDetails {
     @Column(name = "creado_en", nullable = false, updatable = false)
     private OffsetDateTime creadoEn;
 
+    @Column(name = "mfa_habilitado", nullable = false)
+    private boolean mfaHabilitado = false;
+
     protected Usuario() {
         // JPA
     }
@@ -66,6 +69,14 @@ public class Usuario implements UserDetails {
     }
 
     // ---------- Getters / setters de dominio ----------
+
+    public boolean isMfaHabilitado() {
+        return mfaHabilitado;
+    }
+
+    public void setMfaHabilitado(boolean mfaHabilitado) {
+        this.mfaHabilitado = mfaHabilitado;
+    }
 
     public UUID getId() {
         return id;

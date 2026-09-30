@@ -303,4 +303,126 @@ class AutenticacionServiceTest {
         assertThat(response.isActivo()).isTrue();
         verify(auditService).registrar(id, "usuarios", "ACTIVAR_CUENTA", "EXITOSO");
     }
+
+    // ---------- RF-33: login con MFA ----------
+
+    @Test
+    void login_conMfaActivoSinCodigo_enviaCodigoYLanzaExcepcion() {
+        UUID id = UUID.randomUUID();
+        Usuario usuario = usuarioConId(id, "Ana", "ana@example.com", RolUsuario.HUESPED);
+        usuario.setMfaHabilitado(true);
+        Authentication authentication = new UsernamePasswordAuthenticationToken(usuario, null, usuario.getAuthorities());
+        when(authenticationManager.authenticate(any())).thenReturn(authentication);
+
+        assertThatThrownBy(() -> autenticacionService.login(new LoginRequest("ana@example.com", "clave12345")))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Se envió un código de verificación");
+
+        verify(codigoRecuperacionRepository).save(any(CodigoRecuperacion.class));
+        verify(emailService).enviarCodigoMfa(eq("ana@example.com"), eq("Ana"), anyString());
+        verify(jwtService, never()).generarToken(any(), any(), any());
+    }
+
+    @Test
+    void login_conMfaActivoYCodigoValido_retornaToken() {
+        UUID id = UUID.randomUUID();
+        Usuario usuario = usuarioConId(id, "Ana", "ana@example.com", RolUsuario.HUESPED);
+        usuario.setMfaHabilitado(true);
+        Authentication authentication = new UsernamePasswordAuthenticationToken(usuario, null, usuario.getAuthorities());
+        CodigoRecuperacion codigo = new CodigoRecuperacion(usuario, "123456", OffsetDateTime.now().plusMinutes(5));
+
+        when(authenticationManager.authenticate(any())).thenReturn(authentication);
+        when(codigoRecuperacionRepository.findFirstByUsuarioAndCodigoOrderByExpiraEnDesc(usuario, "123456"))
+                .thenReturn(Optional.of(codigo));
+        when(jwtService.generarToken(id, "ana@example.com", "HUESPED")).thenReturn("jwt-generado");
+        when(jwtService.getExpiracionSegundos()).thenReturn(1800L);
+
+        LoginRequest request = new LoginRequest("ana@example.com", "clave12345");
+        request.setCodigoMfa("123456");
+
+        LoginResponse response = autenticacionService.login(request);
+
+        assertThat(response.getToken()).isEqualTo("jwt-generado");
+        assertThat(codigo.isUsado()).isTrue();
+        verify(codigoRecuperacionRepository).save(codigo);
+        verify(auditService).registrar(id, "usuarios", "LOGIN", "EXITOSO");
+    }
+
+    @Test
+    void login_conMfaActivoYCodigoInvalido_lanzaExcepcionYNoEntregaToken() {
+        UUID id = UUID.randomUUID();
+        Usuario usuario = usuarioConId(id, "Ana", "ana@example.com", RolUsuario.HUESPED);
+        usuario.setMfaHabilitado(true);
+        Authentication authentication = new UsernamePasswordAuthenticationToken(usuario, null, usuario.getAuthorities());
+
+        when(authenticationManager.authenticate(any())).thenReturn(authentication);
+        when(codigoRecuperacionRepository.findFirstByUsuarioAndCodigoOrderByExpiraEnDesc(usuario, "000000"))
+                .thenReturn(Optional.empty());
+
+        LoginRequest request = new LoginRequest("ana@example.com", "clave12345");
+        request.setCodigoMfa("000000");
+
+        assertThatThrownBy(() -> autenticacionService.login(request))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("Código inválido o expirado.");
+
+        verify(auditService).registrar(id, "usuarios", "LOGIN_MFA", "FALLIDO");
+        verify(jwtService, never()).generarToken(any(), any(), any());
+    }
+
+    // ---------- RF-33: activar/desactivar MFA ----------
+
+    @Test
+    void cambiarMfa_activarConContrasenaCorrecta_activaMfa() {
+        UUID id = UUID.randomUUID();
+        Usuario usuario = usuarioConId(id, "Ana", "ana@example.com", RolUsuario.HUESPED);
+        when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
+        when(passwordEncoder.matches("clave12345", "hash-existente")).thenReturn(true);
+
+        CambiarMfaRequest request = new CambiarMfaRequest();
+        request.setHabilitado(true);
+        request.setContrasena("clave12345");
+
+        autenticacionService.cambiarMfa(id, request);
+
+        assertThat(usuario.isMfaHabilitado()).isTrue();
+        verify(auditService).registrar(id, "usuarios", "ACTIVAR_MFA", "EXITOSO");
+    }
+
+    @Test
+    void cambiarMfa_desactivarConContrasenaCorrecta_desactivaMfa() {
+        UUID id = UUID.randomUUID();
+        Usuario usuario = usuarioConId(id, "Ana", "ana@example.com", RolUsuario.HUESPED);
+        usuario.setMfaHabilitado(true);
+        when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
+        when(passwordEncoder.matches("clave12345", "hash-existente")).thenReturn(true);
+
+        CambiarMfaRequest request = new CambiarMfaRequest();
+        request.setHabilitado(false);
+        request.setContrasena("clave12345");
+
+        autenticacionService.cambiarMfa(id, request);
+
+        assertThat(usuario.isMfaHabilitado()).isFalse();
+        verify(auditService).registrar(id, "usuarios", "DESACTIVAR_MFA", "EXITOSO");
+    }
+
+    @Test
+    void cambiarMfa_conContrasenaIncorrecta_lanzaExcepcionYNoCambiaNada() {
+        UUID id = UUID.randomUUID();
+        Usuario usuario = usuarioConId(id, "Ana", "ana@example.com", RolUsuario.HUESPED);
+        when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
+        when(passwordEncoder.matches("incorrecta", "hash-existente")).thenReturn(false);
+
+        CambiarMfaRequest request = new CambiarMfaRequest();
+        request.setHabilitado(true);
+        request.setContrasena("incorrecta");
+
+        assertThatThrownBy(() -> autenticacionService.cambiarMfa(id, request))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("La contraseña es incorrecta.");
+
+        assertThat(usuario.isMfaHabilitado()).isFalse();
+        verifyNoInteractions(auditService);
+    }
 }

@@ -35,6 +35,7 @@ public class AutenticacionService {
     private final EmailService emailService;
     private final AuditService auditService;
     private final RestriccionUsuarioRepository restriccionUsuarioRepository;
+    private static final long MFA_VIGENCIA_MINUTOS = 10;
 
 
     public AutenticacionService(
@@ -81,12 +82,17 @@ public class AutenticacionService {
         return PerfilResponse.desde(usuario);
     }
 
-    // ---------- RF-02: login ----------
+    // ---------- RF-02 / RF-33: login (con verificación por correo si el usuario activó MFA) ----------
     public LoginResponse login(LoginRequest request) {
         var authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getCorreo(), request.getContrasena()));
 
         Usuario usuario = (Usuario) authentication.getPrincipal();
+
+        if (usuario.isMfaHabilitado()) {
+            verificarCodigoMfa(usuario, request.getCodigoMfa());
+        }
+
         String token = jwtService.generarToken(usuario.getId(), usuario.getCorreo(), usuario.getRol().name());
 
         auditService.registrar(usuario.getId(), "usuarios", "LOGIN", "EXITOSO");
@@ -99,7 +105,6 @@ public class AutenticacionService {
                 usuario.getRol()
         );
     }
-
     // ---------- RF-03: recuperación de contraseña ----------
     @Transactional
     public void solicitarRecuperacion(SolicitarRecuperacionRequest request) {
@@ -175,6 +180,47 @@ public class AutenticacionService {
                 request.getActivo() ? "ACTIVAR_CUENTA" : "DESACTIVAR_CUENTA", "EXITOSO");
 
         return PerfilResponse.desde(usuario);
+    }
+    // ---------- RF-33: activar/desactivar la verificación por correo ----------
+    @Transactional
+    public void cambiarMfa(UUID usuarioId, CambiarMfaRequest request) {
+        Usuario usuario = buscarPorId(usuarioId);
+
+        if (!passwordEncoder.matches(request.getContrasena(), usuario.getPassword())) {
+            throw new RuntimeException("La contraseña es incorrecta.");
+        }
+
+        usuario.setMfaHabilitado(request.getHabilitado());
+
+        auditService.registrar(usuario.getId(), "usuarios",
+                request.getHabilitado() ? "ACTIVAR_MFA" : "DESACTIVAR_MFA", "EXITOSO");
+    }
+
+    private void verificarCodigoMfa(Usuario usuario, String codigoIngresado) {
+        if (codigoIngresado == null || codigoIngresado.isBlank()) {
+            String codigo = generarCodigoNumerico();
+            OffsetDateTime expiraEn = OffsetDateTime.now().plusMinutes(MFA_VIGENCIA_MINUTOS);
+
+            codigoRecuperacionRepository.save(new CodigoRecuperacion(usuario, codigo, expiraEn));
+            emailService.enviarCodigoMfa(usuario.getCorreo(), usuario.getNombre(), codigo);
+
+            auditService.registrar(usuario.getId(), "usuarios", "SOLICITUD_CODIGO_MFA", "EXITOSO");
+            throw new RuntimeException(
+                    "Se envió un código de verificación a tu correo. Vuelve a iniciar sesión incluyendo el código.");
+        }
+
+        CodigoRecuperacion codigo = codigoRecuperacionRepository
+                .findFirstByUsuarioAndCodigoOrderByExpiraEnDesc(usuario, codigoIngresado)
+                .filter(c -> c.esValido(codigoIngresado))
+                .orElse(null);
+
+        if (codigo == null) {
+            auditService.registrar(usuario.getId(), "usuarios", "LOGIN_MFA", "FALLIDO");
+            throw new RuntimeException("Código inválido o expirado.");
+        }
+
+        codigo.marcarUsado();
+        codigoRecuperacionRepository.save(codigo);
     }
 
     private Usuario buscarPorId(UUID usuarioId) {
