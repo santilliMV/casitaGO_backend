@@ -5,7 +5,9 @@ import co.edu.unbosque.casitago.entity.Reserva;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.domain.Pageable;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -31,4 +33,13 @@ public interface ReservaRepository extends JpaRepository<Reserva, UUID> {
                                          @Param("fin") LocalDate fin,
                                          @Param("pendiente") EstadoReserva pendiente,
                                          @Param("confirmada") EstadoReserva confirmada);
+
+    long countByEstado(EstadoReserva estado);
+
+    @Query("SELECT SUM(r.cotizacion.total) FROM Reserva r WHERE r.estado IN :estados")
+    BigDecimal sumarIngresos(@Param("estados") List<EstadoReserva> estados);
+
+    @Query("SELECT p.ciudad, COUNT(r) FROM Reserva r JOIN r.publicacion p "
+            + "WHERE r.estado <> :excluido GROUP BY p.ciudad ORDER BY COUNT(r) DESC")
+    List<Object[]> ciudadesConMasReservas(@Param("excluido") EstadoReserva excluido, Pageable pageable);
 }

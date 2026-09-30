@@ -16,6 +16,8 @@ public interface PublicacionRepository extends JpaRepository<Publicacion, UUID> 
 
     List<Publicacion> findByAnfitrion(Usuario anfitrion);
 
+    long countByEstado(EstadoPublicacion estado);
+
     List<Publicacion> findByAnfitrionAndEstado(Usuario anfitrion, EstadoPublicacion estado);
 
     @Query("SELECT DISTINCT p FROM Publicacion p "
