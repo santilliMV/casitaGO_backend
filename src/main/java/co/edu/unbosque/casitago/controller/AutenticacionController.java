@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.AuthenticationException;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -36,8 +37,10 @@ public class AutenticacionController {
         try {
             LoginResponse respuesta = autenticacionService.login(request);
             return ResponseEntity.ok(respuesta);
-        } catch (Exception e) {
+        } catch (AuthenticationException e) {
             return ResponseEntity.badRequest().body("Correo o contraseña inválidos");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
@@ -85,6 +88,25 @@ public class AutenticacionController {
             @AuthenticationPrincipal Usuario usuario,
             @Valid @RequestBody CambiarEstadoCuentaRequest request
     ) {
-        return ResponseEntity.ok(autenticacionService.cambiarEstadoCuenta(usuario.getId(), request));
+        try {
+            return ResponseEntity.ok(autenticacionService.cambiarEstadoCuenta(usuario.getId(), request));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // RF-33
+    @PatchMapping("/mfa")
+    public ResponseEntity<?> cambiarMfa(
+            @AuthenticationPrincipal Usuario usuario,
+            @Valid @RequestBody CambiarMfaRequest request
+    ) {
+        try {
+            autenticacionService.cambiarMfa(usuario.getId(), request);
+            String estado = request.getHabilitado() ? "activada" : "desactivada";
+            return ResponseEntity.ok("Autenticación multifactor " + estado + ".");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 }

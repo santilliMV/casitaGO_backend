@@ -8,4 +8,7 @@ package co.edu.unbosque.casitago.service;
 public interface EmailService {
 
     void enviarCodigoRecuperacion(String correoDestino, String nombreDestino, String codigo);
+
+    // RF-33: código de verificación para el inicio de sesión con MFA
+    void enviarCodigoMfa(String correoDestino, String nombreDestino, String codigo);
 }

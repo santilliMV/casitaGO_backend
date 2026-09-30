@@ -24,4 +24,9 @@ public class ConsoleEmailService implements EmailService {
     public void enviarCodigoRecuperacion(String correoDestino, String nombreDestino, String codigo) {
         log.warn("[EMAIL SIMULADO] Para: {} <{}> — Código de recuperación: {}", nombreDestino, correoDestino, codigo);
     }
+
+    @Override
+    public void enviarCodigoMfa(String correoDestino, String nombreDestino, String codigo) {
+        log.warn("[EMAIL SIMULADO] Para: {} <{}> — Código de verificación (MFA): {}", nombreDestino, correoDestino, codigo);
+    }
 }

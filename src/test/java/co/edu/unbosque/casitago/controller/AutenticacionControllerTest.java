@@ -17,6 +17,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.security.authentication.BadCredentialsException;
 
 import java.util.UUID;
 
@@ -118,16 +119,17 @@ class AutenticacionControllerTest {
     }
 
     @Test
-    void login_credencialesInvalidas_devuelve400() throws Exception {
+    void login_credencialesInvalidas_devuelve400ConMensajeFijo() throws Exception {
         when(autenticacionService.login(any(LoginRequest.class)))
-                .thenThrow(new RuntimeException("mal"));
+                .thenThrow(new BadCredentialsException("mal"));
 
         String body = objectMapper.writeValueAsString(new LoginRequest("ana@example.com", "incorrecta"));
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType("application/json")
                         .content(body))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Correo o contraseña inválidos"));
     }
 
     // ---------- RF-03 ----------
@@ -238,5 +240,120 @@ class AutenticacionControllerTest {
                         .content(body))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string("Ya existe una cuenta registrada con ese correo."));
+    }
+    // ---------- RF-33: login con MFA ----------
+
+    @Test
+    void login_conMfaActivoSinCodigo_devuelve400ConElMensajeDelCodigo() throws Exception {
+        when(autenticacionService.login(any(LoginRequest.class)))
+                .thenThrow(new RuntimeException(
+                        "Se envió un código de verificación a tu correo. Vuelve a iniciar sesión incluyendo el código."));
+
+        String body = objectMapper.writeValueAsString(new LoginRequest("ana@example.com", "clave12345"));
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType("application/json")
+                        .content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(
+                        "Se envió un código de verificación a tu correo. Vuelve a iniciar sesión incluyendo el código."));
+    }
+
+    @Test
+    void login_conMfaActivoYCodigoValido_devuelve200ConToken() throws Exception {
+        LoginResponse respuesta = new LoginResponse("jwt-token", 1800L, UUID.randomUUID(), "Ana", RolUsuario.HUESPED);
+        when(autenticacionService.login(any(LoginRequest.class))).thenReturn(respuesta);
+
+        String body = """
+                {"correo":"ana@example.com","contrasena":"clave12345","codigoMfa":"123456"}
+                """;
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType("application/json")
+                        .content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").value("jwt-token"));
+    }
+
+    // ---------- RF-33: activar/desactivar MFA ----------
+
+    @Test
+    void cambiarMfa_datosValidos_devuelve200() throws Exception {
+        autenticarComo(usuarioDePrueba(UUID.randomUUID()));
+
+        String body = """
+                {"habilitado":true,"contrasena":"clave12345"}
+                """;
+
+        mockMvc.perform(patch("/api/auth/mfa")
+                        .contentType("application/json")
+                        .content(body))
+                .andExpect(status().isOk())
+                .andExpect(content().string("Autenticación multifactor activada."));
+    }
+
+    @Test
+    void cambiarMfa_desactivar_devuelveMensajeDeDesactivada() throws Exception {
+        autenticarComo(usuarioDePrueba(UUID.randomUUID()));
+
+        String body = """
+                {"habilitado":false,"contrasena":"clave12345"}
+                """;
+
+        mockMvc.perform(patch("/api/auth/mfa")
+                        .contentType("application/json")
+                        .content(body))
+                .andExpect(status().isOk())
+                .andExpect(content().string("Autenticación multifactor desactivada."));
+    }
+
+    @Test
+    void cambiarMfa_contrasenaIncorrecta_devuelve400() throws Exception {
+        autenticarComo(usuarioDePrueba(UUID.randomUUID()));
+
+        doThrow(new RuntimeException("La contraseña es incorrecta."))
+                .when(autenticacionService).cambiarMfa(any(), any(CambiarMfaRequest.class));
+
+        String body = """
+                {"habilitado":true,"contrasena":"incorrecta"}
+                """;
+
+        mockMvc.perform(patch("/api/auth/mfa")
+                        .contentType("application/json")
+                        .content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("La contraseña es incorrecta."));
+    }
+
+    @Test
+    void cambiarMfa_sinContrasena_devuelve400() throws Exception {
+        autenticarComo(usuarioDePrueba(UUID.randomUUID()));
+
+        String body = """
+                {"habilitado":true}
+                """;
+
+        mockMvc.perform(patch("/api/auth/mfa")
+                        .contentType("application/json")
+                        .content(body))
+                .andExpect(status().isBadRequest());
+    }
+
+    // ---------- RF-06 con restricción (arreglo del controller) ----------
+
+    @Test
+    void cambiarEstadoCuenta_conRestriccionActiva_devuelve400ConElMensaje() throws Exception {
+        autenticarComo(usuarioDePrueba(UUID.randomUUID()));
+
+        when(autenticacionService.cambiarEstadoCuenta(any(), any(CambiarEstadoCuentaRequest.class)))
+                .thenThrow(new RuntimeException("Tu cuenta tiene una restricción activa y no puede reactivarse."));
+
+        String body = objectMapper.writeValueAsString(new CambiarEstadoCuentaRequest(true));
+
+        mockMvc.perform(patch("/api/auth/perfil/estado")
+                        .contentType("application/json")
+                        .content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Tu cuenta tiene una restricción activa y no puede reactivarse."));
     }
 }
