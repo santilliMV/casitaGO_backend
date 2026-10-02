@@ -19,6 +19,8 @@ public class ReservaService {
     private static final BigDecimal TARIFA_LIMPIEZA_FIJA = new BigDecimal("25");
     private static final BigDecimal PORCENTAJE_TARIFA_SERVICIO = new BigDecimal("0.05");
     private static final int DIAS_LIMITE_CANCELACION = 3;
+    @Autowired
+    private PagoService pagoService;
 
     @Autowired
     private PublicacionRepository publicacionRepository;
@@ -79,13 +81,14 @@ public class ReservaService {
 
         validarPublicacionYFechas(publicacion, request.getFechaLlegada(), request.getFechaSalida());
 
+        // RF-35: la reserva queda PENDIENTE hasta que el pago se apruebe (ver PagoService.pagar).
         Reserva reserva = new Reserva();
         reserva.setHuesped(huesped);
         reserva.setPublicacion(publicacion);
         reserva.setCotizacion(cotizacion);
         reserva.setFechaLlegada(request.getFechaLlegada());
         reserva.setFechaSalida(request.getFechaSalida());
-        reserva.setEstado(EstadoReserva.CONFIRMADA);
+        reserva.setEstado(EstadoReserva.PENDIENTE);
         reserva.setIdempotencyKey(idempotencyKey);
 
         try {
@@ -93,13 +96,6 @@ public class ReservaService {
         } catch (RuntimeException e) {
             throw new RuntimeException("Las fechas ya no están disponibles, alguien más reservó primero");
         }
-
-        String detalle = "\"" + publicacion.getTitulo() + "\" del "
-                + reserva.getFechaLlegada() + " al " + reserva.getFechaSalida();
-        notificacionService.crear(huesped, "RESERVA_CONFIRMADA",
-                "Tu reserva en " + detalle + " fue confirmada");
-        notificacionService.crear(publicacion.getAnfitrion(), "RESERVA_CONFIRMADA",
-                "Tienes una nueva reserva en " + detalle);
 
         return ReservaResponse.desde(reserva);
     }
@@ -126,6 +122,9 @@ public class ReservaService {
         long diasParaLlegada = ChronoUnit.DAYS.between(LocalDate.now(), reserva.getFechaLlegada());
         BigDecimal valorDevolucion = diasParaLlegada >= DIAS_LIMITE_CANCELACION
                 ? reserva.getCotizacion().getTotal() : BigDecimal.ZERO;
+
+        // RNF-14: primero el reembolso en el proveedor de pagos. Si falla, la reserva no se cancela.
+        pagoService.reembolsarSiCorresponde(reserva, valorDevolucion, usuario.getId());
 
         reserva.setEstado(EstadoReserva.CANCELADA);
         reservaRepository.save(reserva);
