@@ -57,6 +57,9 @@ class ReservaServiceTest {
     @Mock
     private NotificacionService notificacionService;
 
+    @Mock
+    private PagoService pagoService;
+
     private Usuario huesped;
     private Usuario anfitrion;
 
@@ -212,7 +215,7 @@ class ReservaServiceTest {
     // ---------- RF-18: crear reserva ----------
 
     @Test
-    void crearReserva_datosValidos_deberiaQuedarConfirmada() {
+    void crearReserva_datosValidos_deberiaQuedarPendienteYSinNotificar() {
         Publicacion publicacion = publicacionActiva();
         Cotizacion cotizacion = cotizacionExistente(publicacion);
         when(reservaRepository.findByIdempotencyKey(any())).thenReturn(Optional.empty());
@@ -232,10 +235,9 @@ class ReservaServiceTest {
 
         ReservaResponse response = reservaService.crearReserva(request, huesped);
 
-        assertEquals(EstadoReserva.CONFIRMADA, response.getEstado());
+        assertEquals(EstadoReserva.PENDIENTE, response.getEstado());
         assertEquals(0, cotizacion.getTotal().compareTo(response.getTotal()));
-        verify(notificacionService).crear(eq(huesped), eq("RESERVA_CONFIRMADA"), anyString());
-        verify(notificacionService).crear(eq(anfitrion), eq("RESERVA_CONFIRMADA"), anyString());
+        verifyNoInteractions(notificacionService);
     }
 
     @Test
@@ -357,6 +359,7 @@ class ReservaServiceTest {
         assertEquals(EstadoReserva.CANCELADA, reserva.getEstado());
         verify(notificacionService).crear(eq(huesped), eq("RESERVA_CANCELADA"), anyString());
         verify(notificacionService).crear(eq(anfitrion), eq("RESERVA_CANCELADA"), anyString());
+        verify(pagoService).reembolsarSiCorresponde(eq(reserva), any(BigDecimal.class), eq(huesped.getId()));
     }
 
     @Test
@@ -434,5 +437,27 @@ class ReservaServiceTest {
                 () -> reservaService.cancelarReserva(reservaId, huesped, request));
 
         assertEquals("La reserva no existe", ex.getMessage());
+    }
+
+    @Test
+    void cancelarReserva_siFallaElReembolso_noDeberiaCancelar() {
+        Publicacion publicacion = publicacionActiva();
+        Cotizacion cotizacion = cotizacionExistente(publicacion);
+        Reserva reserva = reservaConfirmada(huesped, publicacion, cotizacion,
+                LocalDate.now().plusDays(10), LocalDate.now().plusDays(13));
+
+        when(reservaRepository.findById(reserva.getId())).thenReturn(Optional.of(reserva));
+        doThrow(new RuntimeException("El proveedor de pagos no pudo procesar el reembolso"))
+                .when(pagoService).reembolsarSiCorresponde(any(), any(), any());
+
+        CancelacionRequest request = new CancelacionRequest();
+        request.setMotivo("Cambio de planes");
+
+        assertThrows(RuntimeException.class,
+                () -> reservaService.cancelarReserva(reserva.getId(), huesped, request));
+
+        assertEquals(EstadoReserva.CONFIRMADA, reserva.getEstado());
+        verify(reservaRepository, never()).save(any());
+        verify(cancelacionRepository, never()).save(any());
     }
 }

@@ -84,7 +84,7 @@ class ReservaControllerTest {
     private ReservaResponse reservaDePrueba() {
         ReservaResponse response = new ReservaResponse();
         response.setId(UUID.randomUUID());
-        response.setEstado(EstadoReserva.CONFIRMADA);
+        response.setEstado(EstadoReserva.PENDIENTE);
         response.setTotal(new BigDecimal("315025"));
         return response;
     }
@@ -130,7 +130,7 @@ class ReservaControllerTest {
                         .contentType("application/json")
                         .content(BODY_RESERVA))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.estado").value("CONFIRMADA"));
+                .andExpect(jsonPath("$.estado").value("PENDIENTE"));
     }
 
     @Test
