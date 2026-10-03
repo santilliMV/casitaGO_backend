@@ -117,9 +117,10 @@ class AutenticacionServiceTest {
         when(authenticationManager.authenticate(any())).thenThrow(new DisabledException("User is disabled"));
         when(usuarioRepository.findByCorreo("ana@example.com")).thenReturn(Optional.of(usuario));
         when(passwordEncoder.matches("clave12345", "hash-existente")).thenReturn(true);
+        LoginRequest request = new LoginRequest("ana@example.com", "clave12345");
 
-        assertThatThrownBy(() -> autenticacionService.login(new LoginRequest("ana@example.com", "clave12345")))
-                .isExactlyInstanceOf(RuntimeException.class)
+        assertThatThrownBy(() -> autenticacionService.login(request))
+                .isInstanceOf(IllegalStateException.class)
                 .hasMessage("Tu cuenta está desactivada.");
 
         verify(jwtService, never()).generarToken(any(), any(), any());
@@ -132,8 +133,9 @@ class AutenticacionServiceTest {
         when(authenticationManager.authenticate(any())).thenThrow(new DisabledException("User is disabled"));
         when(usuarioRepository.findByCorreo("ana@example.com")).thenReturn(Optional.of(usuario));
         when(passwordEncoder.matches("incorrecta", "hash-existente")).thenReturn(false);
+        LoginRequest request = new LoginRequest("ana@example.com", "incorrecta");
 
-        assertThatThrownBy(() -> autenticacionService.login(new LoginRequest("ana@example.com", "incorrecta")))
+        assertThatThrownBy(() -> autenticacionService.login(request))
                 .isInstanceOf(DisabledException.class);
 
         verify(jwtService, never()).generarToken(any(), any(), any());
@@ -143,8 +145,9 @@ class AutenticacionServiceTest {
     void login_cuentaDesactivadaConCorreoInexistente_relanzaElErrorDeAutenticacion() {
         when(authenticationManager.authenticate(any())).thenThrow(new DisabledException("User is disabled"));
         when(usuarioRepository.findByCorreo("fantasma@example.com")).thenReturn(Optional.empty());
+        LoginRequest request = new LoginRequest("fantasma@example.com", "clave12345");
 
-        assertThatThrownBy(() -> autenticacionService.login(new LoginRequest("fantasma@example.com", "clave12345")))
+        assertThatThrownBy(() -> autenticacionService.login(request))
                 .isInstanceOf(DisabledException.class);
 
         verifyNoInteractions(passwordEncoder);

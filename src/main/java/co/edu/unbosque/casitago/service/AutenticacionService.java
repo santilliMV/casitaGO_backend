@@ -96,7 +96,7 @@ public class AutenticacionService {
             Usuario usuarioDesactivado = usuarioRepository.findByCorreo(request.getCorreo()).orElse(null);
             if (usuarioDesactivado != null
                     && passwordEncoder.matches(request.getContrasena(), usuarioDesactivado.getPassword())) {
-                throw new RuntimeException("Tu cuenta está desactivada.");
+                throw new IllegalStateException("Tu cuenta está desactivada.");
             }
             throw e;
         }
