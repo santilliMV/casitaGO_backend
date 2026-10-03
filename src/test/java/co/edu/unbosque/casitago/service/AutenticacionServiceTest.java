@@ -236,12 +236,15 @@ class AutenticacionServiceTest {
     }
 
     @Test
-    void obtenerPerfil_usuarioNoExiste_lanzaExcepcion() {
+    void obtenerPerfil_conMfaActivo_indicaMfaHabilitado() {
         UUID id = UUID.randomUUID();
-        when(usuarioRepository.findById(id)).thenReturn(Optional.empty());
+        Usuario usuario = usuarioConId(id, "Ana", "ana@example.com", RolUsuario.HUESPED);
+        usuario.setMfaHabilitado(true);
+        when(usuarioRepository.findById(id)).thenReturn(Optional.of(usuario));
 
-        assertThatThrownBy(() -> autenticacionService.obtenerPerfil(id))
-                .isInstanceOf(RuntimeException.class);
+        PerfilResponse response = autenticacionService.obtenerPerfil(id);
+
+        assertThat(response.isMfaHabilitado()).isTrue();
     }
 
     // ---------- RF-05: actualizar perfil ----------
