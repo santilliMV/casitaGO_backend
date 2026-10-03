@@ -14,6 +14,7 @@ public class PerfilResponse {
     private RolUsuario rol;
     private boolean activo;
     private OffsetDateTime creadoEn;
+    private boolean mfaHabilitado;
 
     public PerfilResponse() {
     }
@@ -28,7 +29,7 @@ public class PerfilResponse {
     }
 
     public static PerfilResponse desde(Usuario usuario) {
-        return new PerfilResponse(
+        PerfilResponse perfil = new PerfilResponse(
                 usuario.getId(),
                 usuario.getNombre(),
                 usuario.getCorreo(),
@@ -36,6 +37,16 @@ public class PerfilResponse {
                 usuario.isEnabled(),
                 usuario.getCreadoEn()
         );
+        perfil.setMfaHabilitado(usuario.isMfaHabilitado());
+        return perfil;
+    }
+
+    public boolean isMfaHabilitado() {
+        return mfaHabilitado;
+    }
+
+    public void setMfaHabilitado(boolean mfaHabilitado) {
+        this.mfaHabilitado = mfaHabilitado;
     }
 
     public UUID getId() {
