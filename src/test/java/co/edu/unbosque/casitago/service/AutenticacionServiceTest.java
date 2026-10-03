@@ -20,6 +20,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.security.authentication.DisabledException;
 
 import java.time.OffsetDateTime;
 import java.util.Optional;
@@ -110,23 +111,46 @@ class AutenticacionServiceTest {
     // ---------- RF-02: login ----------
 
     @Test
-    void login_credencialesValidas_retornaTokenYDatosDelUsuario() {
-        UUID id = UUID.randomUUID();
-        Usuario usuario = usuarioConId(id, "Ana", "ana@example.com", RolUsuario.HUESPED);
-        Authentication authentication = new UsernamePasswordAuthenticationToken(usuario, null, usuario.getAuthorities());
+    void login_cuentaDesactivadaConContrasenaCorrecta_lanzaMensajeDeCuentaDesactivada() {
+        Usuario usuario = usuarioConId(UUID.randomUUID(), "Ana", "ana@example.com", RolUsuario.HUESPED);
+        usuario.setActivo(false);
+        when(authenticationManager.authenticate(any())).thenThrow(new DisabledException("User is disabled"));
+        when(usuarioRepository.findByCorreo("ana@example.com")).thenReturn(Optional.of(usuario));
+        when(passwordEncoder.matches("clave12345", "hash-existente")).thenReturn(true);
+        LoginRequest request = new LoginRequest("ana@example.com", "clave12345");
 
-        when(authenticationManager.authenticate(any())).thenReturn(authentication);
-        when(jwtService.generarToken(id, "ana@example.com", "HUESPED")).thenReturn("jwt-generado");
-        when(jwtService.getExpiracionSegundos()).thenReturn(1800L);
+        assertThatThrownBy(() -> autenticacionService.login(request))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Tu cuenta está desactivada.");
 
-        LoginResponse response = autenticacionService.login(new LoginRequest("ana@example.com", "clave12345"));
+        verify(jwtService, never()).generarToken(any(), any(), any());
+    }
 
-        assertThat(response.getToken()).isEqualTo("jwt-generado");
-        assertThat(response.getExpiraEnSegundos()).isEqualTo(1800L);
-        assertThat(response.getUsuarioId()).isEqualTo(id);
-        assertThat(response.getRol()).isEqualTo(RolUsuario.HUESPED);
+    @Test
+    void login_cuentaDesactivadaConContrasenaIncorrecta_relanzaElErrorDeAutenticacion() {
+        Usuario usuario = usuarioConId(UUID.randomUUID(), "Ana", "ana@example.com", RolUsuario.HUESPED);
+        usuario.setActivo(false);
+        when(authenticationManager.authenticate(any())).thenThrow(new DisabledException("User is disabled"));
+        when(usuarioRepository.findByCorreo("ana@example.com")).thenReturn(Optional.of(usuario));
+        when(passwordEncoder.matches("incorrecta", "hash-existente")).thenReturn(false);
+        LoginRequest request = new LoginRequest("ana@example.com", "incorrecta");
 
-        verify(auditService).registrar(id, "usuarios", "LOGIN", "EXITOSO");
+        assertThatThrownBy(() -> autenticacionService.login(request))
+                .isInstanceOf(DisabledException.class);
+
+        verify(jwtService, never()).generarToken(any(), any(), any());
+    }
+
+    @Test
+    void login_cuentaDesactivadaConCorreoInexistente_relanzaElErrorDeAutenticacion() {
+        when(authenticationManager.authenticate(any())).thenThrow(new DisabledException("User is disabled"));
+        when(usuarioRepository.findByCorreo("fantasma@example.com")).thenReturn(Optional.empty());
+        LoginRequest request = new LoginRequest("fantasma@example.com", "clave12345");
+
+        assertThatThrownBy(() -> autenticacionService.login(request))
+                .isInstanceOf(DisabledException.class);
+
+        verifyNoInteractions(passwordEncoder);
     }
 
     // ---------- RF-03: recuperación de contraseña ----------

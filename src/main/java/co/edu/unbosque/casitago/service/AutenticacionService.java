@@ -14,6 +14,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import co.edu.unbosque.casitago.repository.RestriccionUsuarioRepository;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.core.Authentication;
 
 import java.security.SecureRandom;
 import java.time.OffsetDateTime;
@@ -82,10 +84,22 @@ public class AutenticacionService {
         return PerfilResponse.desde(usuario);
     }
 
-    // ---------- RF-02 / RF-33: login (con verificación por correo si el usuario activó MFA) ----------
     public LoginResponse login(LoginRequest request) {
-        var authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getCorreo(), request.getContrasena()));
+        Authentication authentication;
+        try {
+            authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.getCorreo(), request.getContrasena()));
+        } catch (DisabledException e) {
+            // Spring revisa "cuenta desactivada" antes de la contraseña. Solo se avisa
+            // que está desactivada si la contraseña es correcta, para no revelar qué
+            // correos existen a quien no conoce la clave.
+            Usuario usuarioDesactivado = usuarioRepository.findByCorreo(request.getCorreo()).orElse(null);
+            if (usuarioDesactivado != null
+                    && passwordEncoder.matches(request.getContrasena(), usuarioDesactivado.getPassword())) {
+                throw new IllegalStateException("Tu cuenta está desactivada.");
+            }
+            throw e;
+        }
 
         Usuario usuario = (Usuario) authentication.getPrincipal();
 
