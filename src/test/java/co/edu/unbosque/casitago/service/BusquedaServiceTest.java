@@ -203,6 +203,45 @@ class BusquedaServiceTest {
         assertEquals("No se pudo ubicar esta publicación en el mapa.", ex.getMessage());
     }
 
+    @Test
+    void obtenerUbicacion_direccionEncontrada_noDeberiaMarcarseComoAproximada() {
+        Publicacion publicacion = publicacionExistente();
+        when(publicacionRepository.findById(publicacion.getId())).thenReturn(Optional.of(publicacion));
+        when(geocodificacionService.geocodificar(publicacion.getUbicacionTextual()))
+                .thenReturn(new double[]{10.4, -75.5});
+
+        UbicacionResponse response = busquedaService.obtenerUbicacion(publicacion.getId());
+
+        assertFalse(response.isAproximada());
+    }
+
+    @Test
+    void obtenerUbicacion_direccionNoEncontradaPeroCiudadSi_deberiaDevolverUbicacionAproximadaSinGuardar() {
+        Publicacion publicacion = publicacionExistente();
+        when(publicacionRepository.findById(publicacion.getId())).thenReturn(Optional.of(publicacion));
+        when(geocodificacionService.geocodificar("Cartagena, Bolívar")).thenReturn(null);
+        when(geocodificacionService.geocodificar("Cartagena")).thenReturn(new double[]{10.4, -75.5});
+
+        UbicacionResponse response = busquedaService.obtenerUbicacion(publicacion.getId());
+
+        assertEquals(10.4, response.getLatitud());
+        assertEquals(-75.5, response.getLongitud());
+        assertTrue(response.isAproximada());
+        verify(publicacionRepository, never()).save(any());
+    }
+
+    @Test
+    void obtenerUbicacion_direccionNoEncontradaYCiudadVacia_deberiaLanzarExcepcionSinBuscarLaCiudad() {
+        Publicacion publicacion = publicacionExistente();
+        publicacion.setCiudad("");
+        when(publicacionRepository.findById(publicacion.getId())).thenReturn(Optional.of(publicacion));
+        when(geocodificacionService.geocodificar(any())).thenReturn(null);
+
+        assertThrows(RuntimeException.class, () -> busquedaService.obtenerUbicacion(publicacion.getId()));
+
+        verify(geocodificacionService, times(1)).geocodificar(any());
+    }
+
     // ---------- helpers ----------
 
     private Publicacion publicacionExistente() {

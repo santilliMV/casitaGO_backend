@@ -7,6 +7,7 @@ public class UbicacionResponse {
     private UUID publicacionId;
     private Double latitud;
     private Double longitud;
+    private boolean aproximada;
 
     public UUID getPublicacionId() {
         return publicacionId;
@@ -30,5 +31,13 @@ public class UbicacionResponse {
 
     public void setLongitud(Double longitud) {
         this.longitud = longitud;
+    }
+
+    public boolean isAproximada() {
+        return aproximada;
+    }
+
+    public void setAproximada(boolean aproximada) {
+        this.aproximada = aproximada;
     }
 }
