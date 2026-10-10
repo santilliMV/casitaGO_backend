@@ -104,20 +104,35 @@ public class BusquedaService {
         Publicacion publicacion = publicacionRepository.findById(publicacionId)
                 .orElseThrow(() -> new RuntimeException("Publicación no encontrada."));
 
-        if (publicacion.getLatitud() == null || publicacion.getLongitud() == null) {
-            double[] coordenadas = geocodificacionService.geocodificar(publicacion.getUbicacionTextual());
-            if (coordenadas == null) {
-                throw new RuntimeException("No se pudo ubicar esta publicación en el mapa.");
-            }
+        UbicacionResponse respuesta = new UbicacionResponse();
+        respuesta.setPublicacionId(publicacion.getId());
+
+        if (publicacion.getLatitud() != null && publicacion.getLongitud() != null) {
+            respuesta.setLatitud(publicacion.getLatitud());
+            respuesta.setLongitud(publicacion.getLongitud());
+            return respuesta;
+        }
+
+        double[] coordenadas = geocodificacionService.geocodificar(publicacion.getUbicacionTextual());
+        if (coordenadas != null) {
             publicacion.setLatitud(coordenadas[0]);
             publicacion.setLongitud(coordenadas[1]);
             publicacionRepository.save(publicacion);
+            respuesta.setLatitud(coordenadas[0]);
+            respuesta.setLongitud(coordenadas[1]);
+            return respuesta;
         }
 
-        UbicacionResponse respuesta = new UbicacionResponse();
-        respuesta.setPublicacionId(publicacion.getId());
-        respuesta.setLatitud(publicacion.getLatitud());
-        respuesta.setLongitud(publicacion.getLongitud());
+        // Si no se encuentra la dirección exacta, se usa el centro de la ciudad como ubicación aproximada.
+        // No se guarda en la base, para que al corregir la dirección se pueda ubicar bien.
+        String ciudad = publicacion.getCiudad();
+        double[] coordenadasCiudad = (ciudad == null || ciudad.isBlank()) ? null : geocodificacionService.geocodificar(ciudad);
+        if (coordenadasCiudad == null) {
+            throw new IllegalStateException("No se pudo ubicar esta publicación en el mapa.");
+        }
+        respuesta.setLatitud(coordenadasCiudad[0]);
+        respuesta.setLongitud(coordenadasCiudad[1]);
+        respuesta.setAproximada(true);
         return respuesta;
     }
 }
