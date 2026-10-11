@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 @Service
 public class ReservaService {
 
-    private static final BigDecimal TARIFA_LIMPIEZA_FIJA = new BigDecimal("25");
+    private static final BigDecimal TARIFA_LIMPIEZA_FIJA = new BigDecimal("25000");
     private static final BigDecimal PORCENTAJE_TARIFA_SERVICIO = new BigDecimal("0.05");
     private static final int DIAS_LIMITE_CANCELACION = 3;
     @Autowired
