@@ -18,6 +18,7 @@ public interface ReservaRepository extends JpaRepository<Reserva, UUID> {
     List<Reserva> findByHuespedIdOrderByCreadoEnDesc(UUID huespedId);
 
     Optional<Reserva> findByIdempotencyKey(String idempotencyKey);
+    List<Reserva> findByPublicacionAnfitrionIdOrderByCreadoEnDesc(UUID anfitrionId);
 
     default List<Reserva> buscarSolapadas(UUID publicacionId, LocalDate inicio, LocalDate fin) {
         return buscarSolapadasInterno(publicacionId, inicio, fin, EstadoReserva.PENDIENTE, EstadoReserva.CONFIRMADA);
