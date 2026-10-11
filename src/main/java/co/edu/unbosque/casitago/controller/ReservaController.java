@@ -45,7 +45,14 @@ public class ReservaController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
-
+    @GetMapping("/recibidas")
+    public ResponseEntity<Object> listarRecibidas(@AuthenticationPrincipal Usuario usuario) {
+        try {
+            return ResponseEntity.ok(reservaService.listarRecibidas(usuario));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
     @PatchMapping("/{id}/cancelar")
     public ResponseEntity<Object> cancelarReserva(@PathVariable UUID id,
                                                   @Valid @RequestBody CancelacionRequest request,

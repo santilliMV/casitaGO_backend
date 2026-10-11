@@ -106,7 +106,15 @@ public class ReservaService {
                 .map(ReservaResponse::desde)
                 .collect(Collectors.toList());
     }
-
+    public List<ReservaRecibidaResponse> listarRecibidas(Usuario anfitrion) {
+        if (anfitrion.getRol() != RolUsuario.ANFITRION) {
+            throw new IllegalStateException("Solo un ANFITRIÓN puede consultar las reservas recibidas");
+        }
+        return reservaRepository.findByPublicacionAnfitrionIdOrderByCreadoEnDesc(anfitrion.getId())
+                .stream()
+                .map(ReservaRecibidaResponse::desde)
+                .collect(Collectors.toList());
+    }
     public CancelacionResponse cancelarReserva(UUID reservaId, Usuario usuario, CancelacionRequest request) {
         Reserva reserva = reservaRepository.findById(reservaId)
                 .orElseThrow(() -> new RuntimeException("La reserva no existe"));

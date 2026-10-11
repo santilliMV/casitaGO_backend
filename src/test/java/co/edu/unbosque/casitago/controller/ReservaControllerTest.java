@@ -19,6 +19,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
+import co.edu.unbosque.casitago.dto.ReservaRecibidaResponse;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -192,5 +193,38 @@ class ReservaControllerTest {
                         .content(BODY_CANCELACION))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string("No tienes permiso para cancelar esta reserva"));
+    }
+    // ---------- Reservas recibidas por el anfitrión ----------
+
+    @Test
+    void listarRecibidas_anfitrion_devuelveLista() throws Exception {
+        autenticarComo(usuarioDePrueba(UUID.randomUUID(), RolUsuario.ANFITRION));
+
+        ReservaRecibidaResponse recibida = new ReservaRecibidaResponse();
+        recibida.setId(UUID.randomUUID());
+        recibida.setTituloPublicacion("Apartamento en Chapinero");
+        recibida.setHuespedNombre("Luis Huesped");
+        recibida.setEstado(EstadoReserva.CONFIRMADA);
+        recibida.setTotal(new BigDecimal("340000"));
+
+        when(reservaService.listarRecibidas(any())).thenReturn(List.of(recibida));
+
+        mockMvc.perform(get("/api/reservas/recibidas"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].tituloPublicacion").value("Apartamento en Chapinero"))
+                .andExpect(jsonPath("$[0].huespedNombre").value("Luis Huesped"));
+    }
+
+    @Test
+    void listarRecibidas_noEsAnfitrion_devuelve400() throws Exception {
+        autenticarComo(usuarioDePrueba(UUID.randomUUID(), RolUsuario.HUESPED));
+
+        when(reservaService.listarRecibidas(any()))
+                .thenThrow(new IllegalStateException("Solo un ANFITRIÓN puede consultar las reservas recibidas"));
+
+        mockMvc.perform(get("/api/reservas/recibidas"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Solo un ANFITRIÓN puede consultar las reservas recibidas"));
     }
 }
