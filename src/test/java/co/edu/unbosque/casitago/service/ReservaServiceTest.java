@@ -142,9 +142,9 @@ class ReservaServiceTest {
 
         assertEquals(3, response.getNoches());
         assertEquals(0, new BigDecimal("300000").compareTo(response.getPrecioBase()));
-        assertEquals(0, new BigDecimal("25").compareTo(response.getTarifaLimpieza()));
+        assertEquals(0, new BigDecimal("25000").compareTo(response.getTarifaLimpieza()));
         assertEquals(0, new BigDecimal("15000.00").compareTo(response.getTarifaServicio()));
-        assertEquals(0, new BigDecimal("315025.00").compareTo(response.getTotal()));
+        assertEquals(0, new BigDecimal("340000.00").compareTo(response.getTotal()));
     }
 
     @Test
