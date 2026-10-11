@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpHeaders;
 
 import java.util.UUID;
 
@@ -34,6 +35,21 @@ public class AdminController {
                                                       @AuthenticationPrincipal Usuario admin) {
         try {
             return ResponseEntity.ok(adminService.levantarRestriccion(id, admin));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+    @GetMapping("/auditoria/exportar")
+    public ResponseEntity<Object> exportarAuditoria(@RequestParam(required = false) String entidad,
+                                                    @RequestParam(required = false) String accion,
+                                                    @RequestParam(required = false) UUID usuarioId,
+                                                    @AuthenticationPrincipal Usuario admin) {
+        try {
+            byte[] csv = adminService.exportarAuditoriaCsv(admin, entidad, accion, usuarioId);
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=auditoria.csv")
+                    .header(HttpHeaders.CONTENT_TYPE, "text/csv; charset=UTF-8")
+                    .body(csv);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
