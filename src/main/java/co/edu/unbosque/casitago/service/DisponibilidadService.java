@@ -60,7 +60,9 @@ public class DisponibilidadService {
 
         List<PeriodoDisponibilidad> solapados = periodoRepository.buscarSolapados(
                 publicacionId, request.getFechaInicio(), request.getFechaFin());
-        if (!solapados.isEmpty()) {
+        boolean reservado = !reservaRepository.buscarSolapadas(
+                publicacionId, request.getFechaInicio(), request.getFechaFin()).isEmpty();
+        if (!solapados.isEmpty() || reservado) {
             throw new RuntimeException("El rango se cruza con otro bloqueo o con una reserva existente.");
         }
 
