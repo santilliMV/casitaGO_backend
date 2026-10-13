@@ -18,6 +18,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.nio.charset.StandardCharsets;
 import java.time.format.DateTimeFormatter;
 import java.time.ZoneId;
+import co.edu.unbosque.casitago.dto.UsuarioAdminResponse;
+import java.util.HashSet;
+import java.util.Set;
+import co.edu.unbosque.casitago.dto.PublicacionAdminResponse;
+import co.edu.unbosque.casitago.entity.Publicacion;
+import co.edu.unbosque.casitago.repository.PublicacionRepository;
+import org.springframework.data.domain.Sort;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -45,6 +52,9 @@ public class AdminService {
 
     @Autowired
     private AuditService auditService;
+
+    @Autowired
+    private PublicacionRepository publicacionRepository;
 
     // ---------- RF-25: restringir usuario ----------
     @Transactional
@@ -99,6 +109,33 @@ public class AdminService {
                 Map.of("usuarioLiberado", usuarioId.toString()));
 
         return RestriccionResponse.desde(restriccion);
+    }
+
+    // ---------- Listado de usuarios para el administrador ----------
+    public List<UsuarioAdminResponse> listarUsuarios(Usuario admin) {
+        verificarAdministrador(admin);
+
+        Set<UUID> restringidos = new HashSet<>();
+        for (RestriccionUsuario restriccion : restriccionUsuarioRepository.findByActivaTrue()) {
+            restringidos.add(restriccion.getUsuario().getId());
+        }
+
+        List<UsuarioAdminResponse> respuestas = new ArrayList<>();
+        for (Usuario usuario : usuarioRepository.findAllByOrderByCreadoEnDesc()) {
+            respuestas.add(UsuarioAdminResponse.desde(usuario, restringidos.contains(usuario.getId())));
+        }
+        return respuestas;
+    }
+
+    // ---------- Listado de publicaciones para moderación ----------
+    public List<PublicacionAdminResponse> listarPublicaciones(Usuario admin) {
+        verificarAdministrador(admin);
+
+        List<PublicacionAdminResponse> respuestas = new ArrayList<>();
+        for (Publicacion publicacion : publicacionRepository.findAll(Sort.by(Sort.Direction.DESC, "creadoEn"))) {
+            respuestas.add(PublicacionAdminResponse.desde(publicacion));
+        }
+        return respuestas;
     }
 
     // ---------- RF-26: consultar eventos de auditoría ----------

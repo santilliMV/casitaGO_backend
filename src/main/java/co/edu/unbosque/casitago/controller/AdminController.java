@@ -39,6 +39,24 @@ public class AdminController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+    @GetMapping("/usuarios")
+    public ResponseEntity<Object> listarUsuarios(@AuthenticationPrincipal Usuario admin) {
+        try {
+            return ResponseEntity.ok(adminService.listarUsuarios(admin));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/publicaciones")
+    public ResponseEntity<Object> listarPublicaciones(@AuthenticationPrincipal Usuario admin) {
+        try {
+            return ResponseEntity.ok(adminService.listarPublicaciones(admin));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
     @GetMapping("/auditoria/exportar")
     public ResponseEntity<Object> exportarAuditoria(@RequestParam(required = false) String entidad,
                                                     @RequestParam(required = false) String accion,
@@ -66,4 +84,6 @@ public class AdminController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+
 }
