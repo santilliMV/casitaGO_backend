@@ -14,6 +14,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+import co.edu.unbosque.casitago.common.audit.AuditService;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -35,6 +36,9 @@ class ResenaServiceTest {
 
     @Mock
     private PublicacionRepository publicacionRepository;
+
+    @Mock
+    private AuditService auditService;
 
     @InjectMocks
     private ResenaService resenaService;
