@@ -12,6 +12,8 @@ import co.edu.unbosque.casitago.repository.ReservaRepository;
 import co.edu.unbosque.casitago.repository.ResenaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import co.edu.unbosque.casitago.common.audit.AuditService;
+import java.util.Map;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -29,6 +31,9 @@ public class ResenaService {
 
     @Autowired
     private PublicacionRepository publicacionRepository;
+
+    @Autowired
+    private AuditService auditService;
 
     public ResenaResponse crearResena(UUID reservaId, Usuario huesped, ResenaRequest request) {
         Reserva reserva = reservaRepository.findById(reservaId)
@@ -54,6 +59,12 @@ public class ResenaService {
         resena.setComentario(request.getComentario());
 
         resena = resenaRepository.save(resena);
+
+        auditService.registrar(huesped.getId(), "resenas", "CREAR_RESENA", "EXITOSO",
+                Map.of("reservaId", reservaId.toString(),
+                        "publicacionId", reserva.getPublicacion().getId().toString(),
+                        "calificacion", String.valueOf(request.getCalificacion())));
+
         return ResenaResponse.desde(resena);
     }
 
