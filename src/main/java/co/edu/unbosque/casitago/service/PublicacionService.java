@@ -92,6 +92,7 @@ public class PublicacionService {
         Publicacion publicacion = buscarPublicacion(publicacionId);
 
         verificarPropietario(usuario, publicacion);
+        verificarNoBloqueada(publicacion);
 
         if (publicacion.getImagenes().isEmpty()) {
             throw new RuntimeException("La publicación necesita al menos una imagen antes de activarse.");
@@ -112,6 +113,7 @@ public class PublicacionService {
         Publicacion publicacion = buscarPublicacion(publicacionId);
 
         verificarPropietario(usuario, publicacion);
+        verificarNoBloqueada(publicacion);
 
         publicacion.setEstado(EstadoPublicacion.PAUSADA);
 
@@ -171,6 +173,12 @@ public class PublicacionService {
     }
 
     // ---------- helpers privados ----------
+
+    private void verificarNoBloqueada(Publicacion publicacion) {
+        if (publicacion.getEstado() == EstadoPublicacion.BLOQUEADA) {
+            throw new IllegalStateException("Una publicación bloqueada por un administrador no puede cambiar de estado.");
+        }
+    }
 
     private void aplicarDatos(Publicacion publicacion, String titulo, String descripcion, String ubicacionTextual,
                               String ciudad, String tipo, Integer capacidad, BigDecimal precioNoche) {
