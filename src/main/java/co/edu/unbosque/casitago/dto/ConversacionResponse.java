@@ -11,6 +11,9 @@ public class ConversacionResponse {
     private UUID huespedId;
     private String ultimoMensaje;
     private OffsetDateTime fechaUltimoMensaje;
+    private String tituloPublicacion;
+    private String huespedNombre;
+    private String anfitrionNombre;
 
     public static ConversacionResponse desde(Mensaje ultimoMensaje) {
         ConversacionResponse response = new ConversacionResponse();
@@ -18,6 +21,9 @@ public class ConversacionResponse {
         response.huespedId = ultimoMensaje.getHuesped().getId();
         response.ultimoMensaje = ultimoMensaje.getContenido();
         response.fechaUltimoMensaje = ultimoMensaje.getCreadoEn();
+        response.tituloPublicacion = ultimoMensaje.getPublicacion().getTitulo();
+        response.huespedNombre = ultimoMensaje.getHuesped().getNombre();
+        response.anfitrionNombre = ultimoMensaje.getPublicacion().getAnfitrion().getNombre();
         return response;
     }
 
@@ -47,6 +53,29 @@ public class ConversacionResponse {
 
     public OffsetDateTime getFechaUltimoMensaje() {
         return fechaUltimoMensaje;
+    }
+    public String getTituloPublicacion() {
+        return tituloPublicacion;
+    }
+
+    public void setTituloPublicacion(String tituloPublicacion) {
+        this.tituloPublicacion = tituloPublicacion;
+    }
+
+    public String getHuespedNombre() {
+        return huespedNombre;
+    }
+
+    public void setHuespedNombre(String huespedNombre) {
+        this.huespedNombre = huespedNombre;
+    }
+
+    public String getAnfitrionNombre() {
+        return anfitrionNombre;
+    }
+
+    public void setAnfitrionNombre(String anfitrionNombre) {
+        this.anfitrionNombre = anfitrionNombre;
     }
 
     public void setFechaUltimoMensaje(OffsetDateTime fechaUltimoMensaje) {
