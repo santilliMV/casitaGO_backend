@@ -59,4 +59,16 @@ class ConversacionDatosTest {
         assertEquals("Hola, ¿está disponible?", response.getUltimoMensaje());
         assertEquals(mensaje.getCreadoEn(), response.getFechaUltimoMensaje());
     }
+    @Test
+    void setters_deberianActualizarTituloYNombres() {
+        ConversacionResponse response = new ConversacionResponse();
+
+        response.setTituloPublicacion("Casa en Suba");
+        response.setHuespedNombre("Hugo Huesped");
+        response.setAnfitrionNombre("Ana Anfitriona");
+
+        assertEquals("Casa en Suba", response.getTituloPublicacion());
+        assertEquals("Hugo Huesped", response.getHuespedNombre());
+        assertEquals("Ana Anfitriona", response.getAnfitrionNombre());
+    }
 }
