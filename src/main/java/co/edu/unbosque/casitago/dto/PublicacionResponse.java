@@ -44,6 +44,8 @@ public class PublicacionResponse extends DatosPublicacion {
                 .collect(Collectors.toList());
         response.creadoEn = publicacion.getCreadoEn();
         response.actualizadoEn = publicacion.getActualizadoEn();
+        response.setLatitud(publicacion.getLatitud());
+        response.setLongitud(publicacion.getLongitud());
         return response;
     }
 
