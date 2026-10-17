@@ -30,6 +30,7 @@ public class PublicacionService {
     private final AuditService auditService;
     private final ImagenStorageService imagenStorageService;
 
+
     public PublicacionService(
             PublicacionRepository publicacionRepository,
             UsuarioRepository usuarioRepository,
@@ -55,6 +56,7 @@ public class PublicacionService {
         publicacion.setAnfitrion(anfitrion);
         aplicarDatos(publicacion, request.getTitulo(), request.getDescripcion(), request.getUbicacionTextual(),
                 request.getCiudad(), request.getTipo(), request.getCapacidad(), request.getPrecioNoche());
+        aplicarCoordenadas(publicacion, request.getLatitud(), request.getLongitud(), false);
         reemplazarServicios(publicacion, request.getServicios());
         reemplazarReglas(publicacion, request.getReglas());
 
@@ -73,6 +75,10 @@ public class PublicacionService {
         Publicacion publicacion = buscarPublicacion(publicacionId);
 
         verificarPropietarioOAdministrador(usuario, publicacion);
+
+        String ubicacionAnterior = publicacion.getUbicacionTextual();
+        aplicarCoordenadas(publicacion, request.getLatitud(), request.getLongitud(),
+                !java.util.Objects.equals(ubicacionAnterior, request.getUbicacionTextual()));
 
         aplicarDatos(publicacion, request.getTitulo(), request.getDescripcion(), request.getUbicacionTextual(),
                 request.getCiudad(), request.getTipo(), request.getCapacidad(), request.getPrecioNoche());
@@ -210,6 +216,26 @@ public class PublicacionService {
             servicio.setNombre(nombre);
             publicacion.getServicios().add(servicio);
         }
+    }
+    private void aplicarCoordenadas(Publicacion publicacion, Double latitud, Double longitud, boolean direccionCambio) {
+        if (latitud == null && longitud == null) {
+            if (direccionCambio) {
+                publicacion.setLatitud(null);
+                publicacion.setLongitud(null);
+            }
+            return;
+        }
+        if (latitud == null || longitud == null) {
+            throw new IllegalArgumentException("Debes indicar la latitud y la longitud juntas.");
+        }
+        if (latitud < -90 || latitud > 90) {
+            throw new IllegalArgumentException("La latitud debe estar entre -90 y 90.");
+        }
+        if (longitud < -180 || longitud > 180) {
+            throw new IllegalArgumentException("La longitud debe estar entre -180 y 180.");
+        }
+        publicacion.setLatitud(latitud);
+        publicacion.setLongitud(longitud);
     }
 
     private void reemplazarReglas(Publicacion publicacion, List<String> descripciones) {
