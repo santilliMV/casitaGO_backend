@@ -11,6 +11,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import static org.mockito.ArgumentMatchers.eq;
 
 import java.util.List;
 import java.util.UUID;
@@ -82,7 +83,7 @@ class BusquedaControllerTest {
     @Test
     void consultarDetalle_publicacionExistente_devuelve200() throws Exception {
         UUID publicacionId = UUID.randomUUID();
-        when(busquedaService.consultarDetalle(publicacionId)).thenReturn(respuestaDePrueba());
+        when(busquedaService.consultarDetalle(eq(publicacionId), any())).thenReturn(respuestaDePrueba());
 
         mockMvc.perform(get("/api/publicaciones/" + publicacionId + "/detalle"))
                 .andExpect(status().isOk());
@@ -91,7 +92,7 @@ class BusquedaControllerTest {
     @Test
     void consultarDetalle_publicacionInexistente_devuelve400() throws Exception {
         UUID publicacionId = UUID.randomUUID();
-        when(busquedaService.consultarDetalle(publicacionId))
+        when(busquedaService.consultarDetalle(eq(publicacionId), any()))
                 .thenThrow(new RuntimeException("Publicación no encontrada."));
 
         mockMvc.perform(get("/api/publicaciones/" + publicacionId + "/detalle"))
@@ -108,7 +109,7 @@ class BusquedaControllerTest {
         ubicacion.setPublicacionId(publicacionId);
         ubicacion.setLatitud(10.4);
         ubicacion.setLongitud(-75.5);
-        when(busquedaService.obtenerUbicacion(publicacionId)).thenReturn(ubicacion);
+        when(busquedaService.obtenerUbicacion(eq(publicacionId), any())).thenReturn(ubicacion);
 
         mockMvc.perform(get("/api/publicaciones/" + publicacionId + "/ubicacion"))
                 .andExpect(status().isOk())
@@ -118,7 +119,7 @@ class BusquedaControllerTest {
     @Test
     void obtenerUbicacion_noSePudoGeocodificar_devuelve400() throws Exception {
         UUID publicacionId = UUID.randomUUID();
-        when(busquedaService.obtenerUbicacion(publicacionId))
+        when(busquedaService.obtenerUbicacion(eq(publicacionId), any()))
                 .thenThrow(new RuntimeException("No se pudo ubicar esta publicación en el mapa."));
 
         mockMvc.perform(get("/api/publicaciones/" + publicacionId + "/ubicacion"))

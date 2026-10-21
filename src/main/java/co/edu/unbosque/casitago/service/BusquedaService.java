@@ -9,6 +9,9 @@ import co.edu.unbosque.casitago.repository.PeriodoDisponibilidadRepository;
 import co.edu.unbosque.casitago.repository.PublicacionRepository;
 import org.springframework.stereotype.Service;
 import co.edu.unbosque.casitago.repository.ReservaRepository;
+import co.edu.unbosque.casitago.entity.EstadoPublicacion;
+import co.edu.unbosque.casitago.entity.RolUsuario;
+import co.edu.unbosque.casitago.entity.Usuario;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -93,16 +96,28 @@ public class BusquedaService {
     }
 
     // ---------- RF-16: consultar detalle de un alojamiento ----------
-    public PublicacionResponse consultarDetalle(UUID publicacionId) {
-        Publicacion publicacion = publicacionRepository.findById(publicacionId)
-                .orElseThrow(() -> new RuntimeException("Publicación no encontrada."));
+    public PublicacionResponse consultarDetalle(UUID publicacionId, Usuario usuario) {
+        Publicacion publicacion = buscarVisible(publicacionId, usuario);
         return PublicacionResponse.desde(publicacion);
     }
 
-    // ---------- RF-30: obtener ubicación en mapa ----------
-    public UbicacionResponse obtenerUbicacion(UUID publicacionId) {
+    private Publicacion buscarVisible(UUID publicacionId, Usuario usuario) {
         Publicacion publicacion = publicacionRepository.findById(publicacionId)
-                .orElseThrow(() -> new RuntimeException("Publicación no encontrada."));
+                .orElseThrow(() -> new IllegalStateException("Publicación no encontrada."));
+        if (publicacion.getEstado() == EstadoPublicacion.ACTIVA) {
+            return publicacion;
+        }
+        boolean esAdministrador = usuario != null && usuario.getRol() == RolUsuario.ADMINISTRADOR;
+        boolean esDuenio = usuario != null && publicacion.getAnfitrion().getId().equals(usuario.getId());
+        if (!esAdministrador && !esDuenio) {
+            throw new IllegalStateException("La publicación no está disponible.");
+        }
+        return publicacion;
+    }
+
+    // ---------- RF-30: obtener ubicación en mapa ----------
+    public UbicacionResponse obtenerUbicacion(UUID publicacionId, Usuario usuario) {
+        Publicacion publicacion = buscarVisible(publicacionId, usuario);
 
         UbicacionResponse respuesta = new UbicacionResponse();
         respuesta.setPublicacionId(publicacion.getId());

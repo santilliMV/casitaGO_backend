@@ -4,6 +4,8 @@ import co.edu.unbosque.casitago.service.BusquedaService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import co.edu.unbosque.casitago.entity.Usuario;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -41,9 +43,10 @@ public class BusquedaController {
 
     // RF-16
     @GetMapping("/{id}/detalle")
-    public ResponseEntity<Object> consultarDetalle(@PathVariable UUID id) {
+    public ResponseEntity<Object> consultarDetalle(@PathVariable UUID id,
+                                                   @AuthenticationPrincipal Usuario usuario) {
         try {
-            return ResponseEntity.ok(busquedaService.consultarDetalle(id));
+            return ResponseEntity.ok(busquedaService.consultarDetalle(id, usuario));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -51,9 +54,10 @@ public class BusquedaController {
 
     // RF-30
     @GetMapping("/{id}/ubicacion")
-    public ResponseEntity<Object> obtenerUbicacion(@PathVariable UUID id) {
+    public ResponseEntity<Object> obtenerUbicacion(@PathVariable UUID id,
+                                                   @AuthenticationPrincipal Usuario usuario) {
         try {
-            return ResponseEntity.ok(busquedaService.obtenerUbicacion(id));
+            return ResponseEntity.ok(busquedaService.obtenerUbicacion(id, usuario));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
