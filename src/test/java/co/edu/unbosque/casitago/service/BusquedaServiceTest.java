@@ -147,7 +147,7 @@ class BusquedaServiceTest {
         Publicacion publicacion = publicacionExistente();
         when(publicacionRepository.findById(publicacion.getId())).thenReturn(Optional.of(publicacion));
 
-        PublicacionResponse response = busquedaService.consultarDetalle(publicacion.getId());
+        PublicacionResponse response = busquedaService.consultarDetalle(publicacion.getId(), huespedDePrueba());
 
         assertEquals(publicacion.getId(), response.getId());
     }
@@ -155,9 +155,10 @@ class BusquedaServiceTest {
     @Test
     void consultarDetalle_publicacionInexistente_deberiaLanzarExcepcion() {
         UUID publicacionId = UUID.randomUUID();
+        Usuario huesped = huespedDePrueba();
         when(publicacionRepository.findById(publicacionId)).thenReturn(Optional.empty());
 
-        assertThrows(RuntimeException.class, () -> busquedaService.consultarDetalle(publicacionId));
+        assertThrows(RuntimeException.class, () -> busquedaService.consultarDetalle(publicacionId, huesped));
     }
 
     // ---------- RF-30: ubicación ----------
@@ -170,7 +171,7 @@ class BusquedaServiceTest {
                 .thenReturn(new double[]{10.4, -75.5});
         when(publicacionRepository.save(publicacion)).thenReturn(publicacion);
 
-        UbicacionResponse response = busquedaService.obtenerUbicacion(publicacion.getId());
+        UbicacionResponse response = busquedaService.obtenerUbicacion(publicacion.getId(), huespedDePrueba());
 
         assertEquals(10.4, response.getLatitud());
         assertEquals(-75.5, response.getLongitud());
@@ -184,7 +185,7 @@ class BusquedaServiceTest {
         publicacion.setLongitud(-75.5);
         when(publicacionRepository.findById(publicacion.getId())).thenReturn(Optional.of(publicacion));
 
-        UbicacionResponse response = busquedaService.obtenerUbicacion(publicacion.getId());
+        UbicacionResponse response = busquedaService.obtenerUbicacion(publicacion.getId(), huespedDePrueba());
 
         assertEquals(10.4, response.getLatitud());
         verify(geocodificacionService, never()).geocodificar(any());
@@ -194,11 +195,12 @@ class BusquedaServiceTest {
     @Test
     void obtenerUbicacion_geocodificacionSinResultado_deberiaLanzarExcepcion() {
         Publicacion publicacion = publicacionExistente();
+        Usuario huesped = huespedDePrueba();
         when(publicacionRepository.findById(publicacion.getId())).thenReturn(Optional.of(publicacion));
         when(geocodificacionService.geocodificar(any())).thenReturn(null);
 
         RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> busquedaService.obtenerUbicacion(publicacion.getId()));
+                () -> busquedaService.obtenerUbicacion(publicacion.getId(), huesped));
 
         assertEquals("No se pudo ubicar esta publicación en el mapa.", ex.getMessage());
     }
@@ -210,7 +212,7 @@ class BusquedaServiceTest {
         when(geocodificacionService.geocodificar(publicacion.getUbicacionTextual()))
                 .thenReturn(new double[]{10.4, -75.5});
 
-        UbicacionResponse response = busquedaService.obtenerUbicacion(publicacion.getId());
+        UbicacionResponse response = busquedaService.obtenerUbicacion(publicacion.getId(), huespedDePrueba());
 
         assertFalse(response.isAproximada());
     }
@@ -222,7 +224,7 @@ class BusquedaServiceTest {
         when(geocodificacionService.geocodificar("Cartagena, Bolívar")).thenReturn(null);
         when(geocodificacionService.geocodificar("Cartagena")).thenReturn(new double[]{10.4, -75.5});
 
-        UbicacionResponse response = busquedaService.obtenerUbicacion(publicacion.getId());
+        UbicacionResponse response = busquedaService.obtenerUbicacion(publicacion.getId(), huespedDePrueba());
 
         assertEquals(10.4, response.getLatitud());
         assertEquals(-75.5, response.getLongitud());
@@ -233,11 +235,12 @@ class BusquedaServiceTest {
     @Test
     void obtenerUbicacion_direccionNoEncontradaYCiudadVacia_deberiaLanzarExcepcionSinBuscarLaCiudad() {
         Publicacion publicacion = publicacionExistente();
+        Usuario huesped = huespedDePrueba();
         publicacion.setCiudad("");
         when(publicacionRepository.findById(publicacion.getId())).thenReturn(Optional.of(publicacion));
         when(geocodificacionService.geocodificar(any())).thenReturn(null);
 
-        assertThrows(RuntimeException.class, () -> busquedaService.obtenerUbicacion(publicacion.getId()));
+        assertThrows(RuntimeException.class, () -> busquedaService.obtenerUbicacion(publicacion.getId(), huesped));
 
         verify(geocodificacionService, times(1)).geocodificar(any());
     }
@@ -263,5 +266,11 @@ class BusquedaServiceTest {
         Usuario anfitrion = new Usuario("Ana Anfitriona", "ana@correo.com", "hash", RolUsuario.ANFITRION);
         ReflectionTestUtils.setField(anfitrion, "id", UUID.randomUUID());
         return anfitrion;
+    }
+
+    private Usuario huespedDePrueba() {
+        Usuario huesped = new Usuario("Hugo Huesped", "hugo@correo.com", "hash", RolUsuario.HUESPED);
+        ReflectionTestUtils.setField(huesped, "id", UUID.randomUUID());
+        return huesped;
     }
 }
