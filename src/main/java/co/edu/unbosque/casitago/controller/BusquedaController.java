@@ -37,7 +37,7 @@ public class BusquedaController {
             return ResponseEntity.ok(busquedaService.buscar(
                     ciudad, desde, hasta, capacidad, tipo, precioMin, precioMax, servicios));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 
@@ -48,7 +48,7 @@ public class BusquedaController {
         try {
             return ResponseEntity.ok(busquedaService.consultarDetalle(id, usuario));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 
@@ -59,7 +59,7 @@ public class BusquedaController {
         try {
             return ResponseEntity.ok(busquedaService.obtenerUbicacion(id, usuario));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 }

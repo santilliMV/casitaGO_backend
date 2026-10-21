@@ -29,7 +29,7 @@ public class DisponibilidadController {
         try {
             return ResponseEntity.ok(disponibilidadService.crearBloqueo(usuario.getId(), id, request));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 
@@ -40,7 +40,7 @@ public class DisponibilidadController {
         try {
             return ResponseEntity.ok(disponibilidadService.listarPeriodos(usuario.getId(), id));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 
@@ -53,7 +53,7 @@ public class DisponibilidadController {
             disponibilidadService.eliminarBloqueo(usuario.getId(), id, periodoId);
             return ResponseEntity.ok("Bloqueo eliminado correctamente.");
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 
@@ -66,7 +66,7 @@ public class DisponibilidadController {
         try {
             return ResponseEntity.ok(disponibilidadService.consultarDisponibilidad(id, desde, hasta));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 }

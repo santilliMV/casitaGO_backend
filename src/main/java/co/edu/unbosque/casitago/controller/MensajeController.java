@@ -27,7 +27,7 @@ public class MensajeController {
         try {
             return ResponseEntity.ok(mensajeService.enviarMensaje(id, usuario, request));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 
@@ -39,7 +39,7 @@ public class MensajeController {
             List<MensajeResponse> mensajes = mensajeService.listarConversacion(id, huespedId, usuario);
             return ResponseEntity.ok(mensajes);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 

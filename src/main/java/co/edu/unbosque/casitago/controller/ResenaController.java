@@ -24,7 +24,7 @@ public class ResenaController {
         try {
             return ResponseEntity.ok(resenaService.crearResena(id, usuario, request));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 
@@ -33,7 +33,7 @@ public class ResenaController {
         try {
             return ResponseEntity.ok(resenaService.listarPorPublicacion(id));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 }

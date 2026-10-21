@@ -21,7 +21,7 @@ public class NotificacionController {
         try {
             return ResponseEntity.ok(notificacionService.listarMisNotificaciones(usuario.getId()));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 
@@ -31,7 +31,7 @@ public class NotificacionController {
         try {
             return ResponseEntity.ok(notificacionService.marcarComoLeida(id, usuario));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 }

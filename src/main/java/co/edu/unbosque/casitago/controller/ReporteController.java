@@ -23,7 +23,7 @@ public class ReporteController {
         try {
             return ResponseEntity.ok(reporteService.obtenerDashboard(admin));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 
@@ -36,7 +36,7 @@ public class ReporteController {
                     .contentType(MediaType.APPLICATION_PDF)
                     .body(pdf);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 }
