@@ -26,7 +26,7 @@ public class PagoController {
         try {
             return ResponseEntity.ok(pagoService.pagar(reservaId, usuario, request));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 
@@ -36,7 +36,7 @@ public class PagoController {
         try {
             return ResponseEntity.ok(pagoService.listarPorReserva(reservaId, usuario));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 }

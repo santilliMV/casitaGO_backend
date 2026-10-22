@@ -24,7 +24,7 @@ public class FavoritoController {
             favoritoService.agregarFavorito(usuario.getId(), id);
             return ResponseEntity.ok("Publicación agregada a favoritos.");
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 
@@ -35,7 +35,7 @@ public class FavoritoController {
             favoritoService.eliminarFavorito(usuario.getId(), id);
             return ResponseEntity.ok("Publicación eliminada de favoritos.");
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 
@@ -45,7 +45,7 @@ public class FavoritoController {
         try {
             return ResponseEntity.ok(favoritoService.listarFavoritos(usuario.getId()));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 }

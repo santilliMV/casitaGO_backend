@@ -23,7 +23,7 @@ public class ReservaController {
         try {
             return ResponseEntity.ok(reservaService.generarCotizacion(request));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 
@@ -33,7 +33,7 @@ public class ReservaController {
         try {
             return ResponseEntity.ok(reservaService.crearReserva(request, usuario));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 
@@ -42,7 +42,7 @@ public class ReservaController {
         try {
             return ResponseEntity.ok(reservaService.listarPorHuesped(usuario.getId()));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
     @GetMapping("/recibidas")
@@ -50,7 +50,7 @@ public class ReservaController {
         try {
             return ResponseEntity.ok(reservaService.listarRecibidas(usuario));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
     @PatchMapping("/{id}/cancelar")
@@ -60,7 +60,7 @@ public class ReservaController {
         try {
             return ResponseEntity.ok(reservaService.cancelarReserva(id, usuario, request));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 }

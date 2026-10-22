@@ -30,7 +30,7 @@ public class PublicacionController {
         try {
             return ResponseEntity.ok(publicacionService.crearPublicacion(usuario.getId(), request));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 
@@ -41,7 +41,7 @@ public class PublicacionController {
         try {
             return ResponseEntity.ok(publicacionService.editarPublicacion(usuario.getId(), id, request));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 
@@ -50,7 +50,7 @@ public class PublicacionController {
         try {
             return ResponseEntity.ok(publicacionService.activarPublicacion(usuario.getId(), id));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 
@@ -59,7 +59,7 @@ public class PublicacionController {
         try {
             return ResponseEntity.ok(publicacionService.pausarPublicacion(usuario.getId(), id));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 
@@ -69,7 +69,7 @@ public class PublicacionController {
             List<PublicacionResponse> publicaciones = publicacionService.consultarPublicacionesDeAnfitrion(usuario.getId());
             return ResponseEntity.ok(publicaciones);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 
@@ -80,7 +80,7 @@ public class PublicacionController {
         try {
             return ResponseEntity.ok(publicacionService.bloquearPublicacion(usuario.getId(), id, request));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 
@@ -91,7 +91,7 @@ public class PublicacionController {
         try {
             return ResponseEntity.ok(publicacionService.agregarImagen(usuario.getId(), id, archivo));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 }

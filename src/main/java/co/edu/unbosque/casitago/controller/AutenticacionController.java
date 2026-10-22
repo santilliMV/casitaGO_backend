@@ -27,7 +27,7 @@ public class AutenticacionController {
             PerfilResponse perfil = autenticacionService.registrar(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(perfil);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 
@@ -40,7 +40,7 @@ public class AutenticacionController {
         } catch (AuthenticationException e) {
             return ResponseEntity.badRequest().body("Correo o contraseña inválidos");
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 
@@ -59,7 +59,7 @@ public class AutenticacionController {
             autenticacionService.confirmarRecuperacion(request);
             return ResponseEntity.ok("Contraseña actualizada correctamente.");
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 
@@ -78,7 +78,7 @@ public class AutenticacionController {
         try {
             return ResponseEntity.ok(autenticacionService.actualizarPerfil(usuario.getId(), request));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 
@@ -91,7 +91,7 @@ public class AutenticacionController {
         try {
             return ResponseEntity.ok(autenticacionService.cambiarEstadoCuenta(usuario.getId(), request));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 
@@ -106,7 +106,7 @@ public class AutenticacionController {
             String estado = request.getHabilitado() ? "activada" : "desactivada";
             return ResponseEntity.ok("Autenticación multifactor " + estado + ".");
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 }

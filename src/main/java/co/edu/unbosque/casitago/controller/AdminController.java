@@ -26,7 +26,7 @@ public class AdminController {
         try {
             return ResponseEntity.ok(adminService.restringirUsuario(id, admin, request));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 
@@ -36,7 +36,7 @@ public class AdminController {
         try {
             return ResponseEntity.ok(adminService.levantarRestriccion(id, admin));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 
@@ -45,7 +45,7 @@ public class AdminController {
         try {
             return ResponseEntity.ok(adminService.listarUsuarios(admin));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 
@@ -54,7 +54,7 @@ public class AdminController {
         try {
             return ResponseEntity.ok(adminService.listarPublicaciones(admin));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
     @GetMapping("/auditoria/exportar")
@@ -69,7 +69,7 @@ public class AdminController {
                     .header(HttpHeaders.CONTENT_TYPE, "text/csv; charset=UTF-8")
                     .body(csv);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 
@@ -81,7 +81,7 @@ public class AdminController {
         try {
             return ResponseEntity.ok(adminService.consultarAuditoria(admin, entidad, accion, usuarioId));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
     }
 
