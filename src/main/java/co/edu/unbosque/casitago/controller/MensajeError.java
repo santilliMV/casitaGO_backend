@@ -20,6 +20,9 @@ final class MensajeError {
     // Los errores de negocio se devuelven tal cual; los de base de datos se
     // ocultan al cliente (nombres de tablas, restricciones, SQL) y se registran.
     static String de(RuntimeException e) {
+        if (e == null) {
+            return GENERICO;
+        }
         Throwable actual = e;
         for (int i = 0; i < PROFUNDIDAD_MAXIMA && actual != null; i++) {
             if (actual instanceof DataAccessException

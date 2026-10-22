@@ -11,6 +11,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 class MensajeErrorTest {
 
+
+
     @Test
     void de_errorDeNegocio_devuelveElMensajeTalCual() {
         RuntimeException e = new IllegalStateException("La publicación no está disponible.");
@@ -71,5 +73,10 @@ class MensajeErrorTest {
         RuntimeException e = new RuntimeException("Pago rechazado", new IllegalStateException("tarjeta"));
 
         assertEquals("Pago rechazado", MensajeError.de(e));
+    }
+
+    @Test
+    void de_excepcionNula_devuelveElMensajeGenerico() {
+        assertEquals(MensajeError.GENERICO, MensajeError.de(null));
     }
 }
