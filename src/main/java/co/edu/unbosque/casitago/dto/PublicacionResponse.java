@@ -14,6 +14,7 @@ public class PublicacionResponse extends DatosPublicacion {
 
     private UUID id;
     private UUID anfitrionId;
+    private String anfitrionNombre;
     private String estado;
     private List<String> servicios;
     private List<String> reglas;
@@ -25,6 +26,7 @@ public class PublicacionResponse extends DatosPublicacion {
         PublicacionResponse response = new PublicacionResponse();
         response.id = publicacion.getId();
         response.anfitrionId = publicacion.getAnfitrion().getId();
+        response.anfitrionNombre = publicacion.getAnfitrion().getNombre();
         response.setTitulo(publicacion.getTitulo());
         response.setDescripcion(publicacion.getDescripcion());
         response.setUbicacionTextual(publicacion.getUbicacionTextual());
@@ -63,6 +65,14 @@ public class PublicacionResponse extends DatosPublicacion {
 
     public void setAnfitrionId(UUID anfitrionId) {
         this.anfitrionId = anfitrionId;
+    }
+
+    public String getAnfitrionNombre() {
+        return anfitrionNombre;
+    }
+
+    public void setAnfitrionNombre(String anfitrionNombre) {
+        this.anfitrionNombre = anfitrionNombre;
     }
 
     public String getEstado() {
