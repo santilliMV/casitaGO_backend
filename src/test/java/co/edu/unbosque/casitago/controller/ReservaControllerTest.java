@@ -96,7 +96,7 @@ class ReservaControllerTest {
     void generarCotizacion_datosValidos_devuelve200() throws Exception {
         autenticarComo(usuarioDePrueba(UUID.randomUUID(), RolUsuario.HUESPED));
 
-        when(reservaService.generarCotizacion(any())).thenReturn(cotizacionDePrueba());
+        when(reservaService.generarCotizacion(any(), any())).thenReturn(cotizacionDePrueba());
 
         mockMvc.perform(post("/api/reservas/cotizacion")
                         .contentType("application/json")
@@ -109,7 +109,7 @@ class ReservaControllerTest {
     void generarCotizacion_fechasNoDisponibles_devuelve400() throws Exception {
         autenticarComo(usuarioDePrueba(UUID.randomUUID(), RolUsuario.HUESPED));
 
-        when(reservaService.generarCotizacion(any()))
+        when(reservaService.generarCotizacion(any(), any()))
                 .thenThrow(new RuntimeException("Las fechas seleccionadas no están disponibles"));
 
         mockMvc.perform(post("/api/reservas/cotizacion")

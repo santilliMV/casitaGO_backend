@@ -138,7 +138,7 @@ class ReservaServiceTest {
             return cotizacion;
         });
 
-        CotizacionResponse response = reservaService.generarCotizacion(cotizacionRequest(publicacion.getId()));
+        CotizacionResponse response = reservaService.generarCotizacion(cotizacionRequest(publicacion.getId()), huesped);
 
         assertEquals(3, response.getNoches());
         assertEquals(0, new BigDecimal("300000").compareTo(response.getPrecioBase()));
@@ -151,10 +151,11 @@ class ReservaServiceTest {
     void generarCotizacion_publicacionNoActiva_deberiaLanzarExcepcion() {
         Publicacion publicacion = publicacionActiva();
         publicacion.setEstado(EstadoPublicacion.PAUSADA);
+        CotizacionRequest request = cotizacionRequest(publicacion.getId());
         when(publicacionRepository.findById(publicacion.getId())).thenReturn(Optional.of(publicacion));
 
         RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> reservaService.generarCotizacion(cotizacionRequest(publicacion.getId())));
+                () -> reservaService.generarCotizacion(request, huesped));
 
         assertEquals("La publicación no está activa", ex.getMessage());
         verify(cotizacionRepository, never()).save(any());
@@ -169,12 +170,13 @@ class ReservaServiceTest {
         request.setFechaLlegada(salida);
         request.setFechaSalida(llegada);
 
-        assertThrows(RuntimeException.class, () -> reservaService.generarCotizacion(request));
+        assertThrows(RuntimeException.class, () -> reservaService.generarCotizacion(request, huesped));
     }
 
     @Test
     void generarCotizacion_conPeriodoBloqueado_deberiaLanzarExcepcion() {
         Publicacion publicacion = publicacionActiva();
+        CotizacionRequest request = cotizacionRequest(publicacion.getId());
         when(publicacionRepository.findById(publicacion.getId())).thenReturn(Optional.of(publicacion));
         PeriodoDisponibilidad periodo = new PeriodoDisponibilidad();
         periodo.setEstado(EstadoPeriodo.BLOQUEADO);
@@ -182,7 +184,7 @@ class ReservaServiceTest {
                 .thenReturn(List.of(periodo));
 
         RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> reservaService.generarCotizacion(cotizacionRequest(publicacion.getId())));
+                () -> reservaService.generarCotizacion(request, huesped));
 
         assertEquals("Las fechas seleccionadas no están disponibles", ex.getMessage());
     }
@@ -190,6 +192,7 @@ class ReservaServiceTest {
     @Test
     void generarCotizacion_conReservaExistente_deberiaLanzarExcepcion() {
         Publicacion publicacion = publicacionActiva();
+        CotizacionRequest request = cotizacionRequest(publicacion.getId());
         when(publicacionRepository.findById(publicacion.getId())).thenReturn(Optional.of(publicacion));
         when(periodoDisponibilidadRepository.buscarSolapados(publicacion.getId(), llegada, salida)).thenReturn(List.of());
 
@@ -198,16 +201,17 @@ class ReservaServiceTest {
                 .thenReturn(List.of(reservaExistente));
 
         assertThrows(RuntimeException.class,
-                () -> reservaService.generarCotizacion(cotizacionRequest(publicacion.getId())));
+                () -> reservaService.generarCotizacion(request, huesped));
     }
 
     @Test
     void generarCotizacion_conPublicacionInexistente_deberiaLanzarExcepcion() {
         UUID publicacionId = UUID.randomUUID();
+        CotizacionRequest request = cotizacionRequest(publicacionId);
         when(publicacionRepository.findById(publicacionId)).thenReturn(Optional.empty());
 
         RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> reservaService.generarCotizacion(cotizacionRequest(publicacionId)));
+                () -> reservaService.generarCotizacion(request, huesped));
 
         assertEquals("La publicación no existe", ex.getMessage());
     }
