@@ -40,10 +40,11 @@ public class ReservaService {
     @Autowired
     private NotificacionService notificacionService;
 
-    public CotizacionResponse generarCotizacion(CotizacionRequest request) {
+    public CotizacionResponse generarCotizacion(CotizacionRequest request, Usuario usuario) {
         Publicacion publicacion = publicacionRepository.findById(request.getPublicacionId())
                 .orElseThrow(() -> new RuntimeException("La publicación no existe"));
 
+        validarQuienReserva(publicacion, usuario);
         validarPublicacionYFechas(publicacion, request.getFechaLlegada(), request.getFechaSalida());
 
         long noches = ChronoUnit.DAYS.between(request.getFechaLlegada(), request.getFechaSalida());
@@ -78,6 +79,7 @@ public class ReservaService {
                 .orElseThrow(() -> new RuntimeException("La cotización no existe"));
 
         Publicacion publicacion = cotizacion.getPublicacion();
+        validarQuienReserva(publicacion, huesped);
 
         validarPublicacionYFechas(publicacion, request.getFechaLlegada(), request.getFechaSalida());
 
@@ -173,6 +175,14 @@ public class ReservaService {
 
         if (bloqueado || reservado) {
             throw new RuntimeException("Las fechas seleccionadas no están disponibles");
+        }
+    }
+    private void validarQuienReserva(Publicacion publicacion, Usuario usuario) {
+        if (usuario.getRol() == RolUsuario.ADMINISTRADOR) {
+            throw new IllegalStateException("Los administradores no pueden hacer reservas.");
+        }
+        if (publicacion.getAnfitrion().getId().equals(usuario.getId())) {
+            throw new IllegalStateException("No puedes reservar tu propia publicación.");
         }
     }
 }

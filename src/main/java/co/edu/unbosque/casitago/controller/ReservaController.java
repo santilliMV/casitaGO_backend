@@ -19,9 +19,10 @@ public class ReservaController {
     private ReservaService reservaService;
 
     @PostMapping("/cotizacion")
-    public ResponseEntity<Object> generarCotizacion(@Valid @RequestBody CotizacionRequest request) {
+    public ResponseEntity<Object> generarCotizacion(@Valid @RequestBody CotizacionRequest request,
+                                                    @AuthenticationPrincipal Usuario usuario) {
         try {
-            return ResponseEntity.ok(reservaService.generarCotizacion(request));
+            return ResponseEntity.ok(reservaService.generarCotizacion(request, usuario));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(MensajeError.de(e));
         }
