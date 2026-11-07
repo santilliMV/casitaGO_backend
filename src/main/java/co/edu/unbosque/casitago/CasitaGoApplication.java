@@ -4,7 +4,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
- * Punto de entrada del backend del Marketplace de Alojamientos (Inversiones LR).
+ * Punto de entrada del backend del Marketplace de Alojamientos.
  * <p>
  * Arquitectura: monolito modular. Cada paquete de primer nivel bajo
  * {@code co.edu.unbosque.casitago} corresponde a un "servicio de software"
