@@ -15,7 +15,7 @@
     <artifactId>casitago-backend</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <name>casitago-backend</name>
-    <description>Backend - CasitaGO (Marketplace de Alojamientos, Inversiones LR) - Universidad El Bosque</description>
+    <description>Backend - CasitaGO (Marketplace de Alojamientos) - Universidad El Bosque</description>
 
     <properties>
         <java.version>21</java.version>

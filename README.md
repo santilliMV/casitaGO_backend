@@ -1,6 +1,6 @@
 # CasitaGO — Backend
 
-Backend del proyecto de curso **Marketplace de Alojamientos** (Inversiones LR),
+Backend del proyecto de curso **Marketplace de Alojamientos**,
 Ingeniería de Software — Universidad El Bosque.
 
 ## Stack
