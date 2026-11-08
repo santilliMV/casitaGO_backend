@@ -43,6 +43,27 @@ public class PublicacionService {
         this.imagenStorageService = imagenStorageService;
     }
 
+    // ---------- ADMINISTRADOR desbloquea una publicación (queda PAUSADA) ----------
+    @Transactional
+    public PublicacionResponse desbloquearPublicacion(UUID usuarioId, UUID publicacionId) {
+        Usuario administrador = buscarUsuario(usuarioId);
+        Publicacion publicacion = buscarPublicacion(publicacionId);
+
+        if (administrador.getRol() != RolUsuario.ADMINISTRADOR) {
+            throw new IllegalStateException("Solo un ADMINISTRADOR puede desbloquear una publicación.");
+        }
+        if (publicacion.getEstado() != EstadoPublicacion.BLOQUEADA) {
+            throw new IllegalStateException("La publicación no está bloqueada.");
+        }
+
+        publicacion.setEstado(EstadoPublicacion.PAUSADA);
+
+        auditService.registrar(administrador.getId(), ENTIDAD_PUBLICACIONES, "DESBLOQUEAR_PUBLICACION", RESULTADO_EXITOSO,
+                Map.of(PUBLICACION_ID, publicacion.getId().toString()));
+
+        return PublicacionResponse.desde(publicacion);
+    }
+
     // ---------- RF-08: crear publicación ----------
     @Transactional
     public PublicacionResponse crearPublicacion(UUID usuarioId, PublicacionRequest request) {
