@@ -84,6 +84,16 @@ public class PublicacionController {
         }
     }
 
+    @PatchMapping("/{id}/desbloquear")
+    public ResponseEntity<Object> desbloquear(@PathVariable UUID id,
+                                              @AuthenticationPrincipal Usuario usuario) {
+        try {
+            return ResponseEntity.ok(publicacionService.desbloquearPublicacion(usuario.getId(), id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(MensajeError.de(e));
+        }
+    }
+
     @PostMapping(value = "/{id}/imagenes", consumes = "multipart/form-data")
     public ResponseEntity<Object> agregarImagen(@PathVariable UUID id,
                                                 @RequestParam("archivo") MultipartFile archivo,
