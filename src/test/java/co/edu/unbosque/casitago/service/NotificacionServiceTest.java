@@ -28,6 +28,10 @@ class NotificacionServiceTest {
     @InjectMocks
     private NotificacionService notificacionService;
 
+
+    @Mock
+    private CanalEventosService canalEventosService;
+
     @Test
     void crear_deberiaGuardarNotificacionNoLeida() {
         Usuario usuario = mock(Usuario.class);

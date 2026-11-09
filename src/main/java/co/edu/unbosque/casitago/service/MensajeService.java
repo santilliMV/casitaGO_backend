@@ -32,6 +32,9 @@ public class MensajeService {
     @Autowired
     private UsuarioRepository usuarioRepository;
 
+    @Autowired
+    private CanalEventosService canalEventosService;
+
     public MensajeResponse enviarMensaje(UUID publicacionId, Usuario usuario, MensajeRequest request) {
         Publicacion publicacion = publicacionRepository.findById(publicacionId)
                 .orElseThrow(() -> new RuntimeException("La publicación no existe"));
@@ -58,6 +61,12 @@ public class MensajeService {
         mensaje.setContenido(request.getContenido());
 
         mensaje = mensajeRepository.save(mensaje);
+        UUID destinatarioId = usuario.getRol() == RolUsuario.HUESPED
+                ? publicacion.getAnfitrion().getId()
+                : huesped.getId();
+        canalEventosService.publicar(destinatarioId, "mensaje", Map.of(
+                "publicacionId", String.valueOf(publicacion.getId()),
+                "huespedId", String.valueOf(huesped.getId())));
         return MensajeResponse.desde(mensaje);
     }
 

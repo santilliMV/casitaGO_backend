@@ -39,6 +39,9 @@ class MensajeServiceTest {
     @InjectMocks
     private MensajeService mensajeService;
 
+    @Mock
+    private CanalEventosService canalEventosService;
+
     private Usuario anfitrion;
     private Usuario huesped;
 
