@@ -1,20 +1,23 @@
 package co.edu.unbosque.casitago.service;
 
+import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 /**
  * Implementación real de EmailService (RF-03, RF-33): envía el código por
- * correo usando SMTP (Brevo) a través de JavaMailSender.
+ * correo usando SMTP (Brevo) a través de JavaMailSender. El correo lleva una
+ * versión HTML y una versión en texto plano (ver PlantillaCorreo).
  */
 @Service
 public class CorreoEmailService implements EmailService {
 
     private static final Logger log = LoggerFactory.getLogger(CorreoEmailService.class);
+    private static final String CODIFICACION = "UTF-8";
 
     private final JavaMailSender mailSender;
     private final String remitente;
@@ -27,29 +30,28 @@ public class CorreoEmailService implements EmailService {
 
     @Override
     public void enviarCodigoRecuperacion(String correoDestino, String nombreDestino, String codigo) {
-        String asunto = "CasitaGO - Código de recuperación de contraseña";
-        String texto = "Hola " + nombreDestino + ",\n\n"
-                + "Tu código para recuperar la contraseña es: " + codigo + "\n\n"
-                + "Si no fuiste tú quien lo solicitó, ignora este mensaje.";
-        enviar(correoDestino, asunto, texto);
+        enviar(correoDestino,
+                "CasitaGO - Código de recuperación de contraseña",
+                PlantillaCorreo.textoRecuperacion(nombreDestino, codigo),
+                PlantillaCorreo.htmlRecuperacion(nombreDestino, codigo));
     }
 
     @Override
     public void enviarCodigoMfa(String correoDestino, String nombreDestino, String codigo) {
-        String asunto = "CasitaGO - Código de verificación";
-        String texto = "Hola " + nombreDestino + ",\n\n"
-                + "Tu código de verificación para iniciar sesión es: " + codigo + "\n\n"
-                + "Si no fuiste tú quien intentó iniciar sesión, cambia tu contraseña.";
-        enviar(correoDestino, asunto, texto);
+        enviar(correoDestino,
+                "CasitaGO - Código de verificación",
+                PlantillaCorreo.textoVerificacion(nombreDestino, codigo),
+                PlantillaCorreo.htmlVerificacion(nombreDestino, codigo));
     }
 
-    private void enviar(String correoDestino, String asunto, String texto) {
-        SimpleMailMessage mensaje = new SimpleMailMessage();
-        mensaje.setFrom(remitente);
-        mensaje.setTo(correoDestino);
-        mensaje.setSubject(asunto);
-        mensaje.setText(texto);
+    private void enviar(String correoDestino, String asunto, String texto, String html) {
         try {
+            MimeMessage mensaje = mailSender.createMimeMessage();
+            MimeMessageHelper ayudante = new MimeMessageHelper(mensaje, true, CODIFICACION);
+            ayudante.setFrom(remitente);
+            ayudante.setTo(correoDestino);
+            ayudante.setSubject(asunto);
+            ayudante.setText(texto, html);
             mailSender.send(mensaje);
         } catch (Exception e) {
             log.error("No se pudo enviar el correo a {}: {}", correoDestino, e.getMessage());
