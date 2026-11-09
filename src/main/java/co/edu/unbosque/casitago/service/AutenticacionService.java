@@ -104,7 +104,12 @@ public class AutenticacionService {
         Usuario usuario = (Usuario) authentication.getPrincipal();
 
         if (usuario.isMfaHabilitado()) {
-            verificarCodigoMfa(usuario, request.getCodigoMfa());
+            String codigoMfa = request.getCodigoMfa();
+            if (sinCodigo(codigoMfa)) {
+                enviarCodigoMfa(usuario);
+                return LoginResponse.codigoMfaRequerido();
+            }
+            verificarCodigoMfa(usuario, codigoMfa);
         }
 
         String token = jwtService.generarToken(usuario.getId(), usuario.getCorreo(), usuario.getRol().name());
@@ -210,19 +215,21 @@ public class AutenticacionService {
                 request.getHabilitado() ? "ACTIVAR_MFA" : "DESACTIVAR_MFA", "EXITOSO");
     }
 
+    private boolean sinCodigo(String codigoIngresado) {
+        return codigoIngresado == null || codigoIngresado.isBlank();
+    }
+
+    private void enviarCodigoMfa(Usuario usuario) {
+        String codigo = generarCodigoNumerico();
+        OffsetDateTime expiraEn = OffsetDateTime.now().plusMinutes(MFA_VIGENCIA_MINUTOS);
+
+        codigoRecuperacionRepository.save(new CodigoRecuperacion(usuario, codigo, expiraEn));
+        emailService.enviarCodigoMfa(usuario.getCorreo(), usuario.getNombre(), codigo);
+
+        auditService.registrar(usuario.getId(), "usuarios", "SOLICITUD_CODIGO_MFA", "EXITOSO");
+    }
+
     private void verificarCodigoMfa(Usuario usuario, String codigoIngresado) {
-        if (codigoIngresado == null || codigoIngresado.isBlank()) {
-            String codigo = generarCodigoNumerico();
-            OffsetDateTime expiraEn = OffsetDateTime.now().plusMinutes(MFA_VIGENCIA_MINUTOS);
-
-            codigoRecuperacionRepository.save(new CodigoRecuperacion(usuario, codigo, expiraEn));
-            emailService.enviarCodigoMfa(usuario.getCorreo(), usuario.getNombre(), codigo);
-
-            auditService.registrar(usuario.getId(), "usuarios", "SOLICITUD_CODIGO_MFA", "EXITOSO");
-            throw new RuntimeException(
-                    "Se envió un código de verificación a tu correo. Vuelve a iniciar sesión incluyendo el código.");
-        }
-
         CodigoRecuperacion codigo = codigoRecuperacionRepository
                 .findFirstByUsuarioAndCodigoOrderByExpiraEnDesc(usuario, codigoIngresado)
                 .filter(c -> c.esValido(codigoIngresado))
@@ -236,7 +243,6 @@ public class AutenticacionService {
         codigo.marcarUsado();
         codigoRecuperacionRepository.save(codigo);
     }
-
     private Usuario buscarPorId(UUID usuarioId) {
         return usuarioRepository.findById(usuarioId)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado."));

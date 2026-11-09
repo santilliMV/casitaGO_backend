@@ -11,6 +11,7 @@ public class LoginResponse {
     private UUID usuarioId;
     private String nombre;
     private RolUsuario rol;
+    private boolean mfaRequerido;
 
     public LoginResponse() {
     }
@@ -21,6 +22,13 @@ public class LoginResponse {
         this.usuarioId = usuarioId;
         this.nombre = nombre;
         this.rol = rol;
+    }
+
+    // RF-33: el usuario tiene MFA y todavia no mando el codigo; se le envio por correo.
+    public static LoginResponse codigoMfaRequerido() {
+        LoginResponse respuesta = new LoginResponse();
+        respuesta.setMfaRequerido(true);
+        return respuesta;
     }
 
     public String getToken() {
@@ -61,5 +69,14 @@ public class LoginResponse {
 
     public void setRol(RolUsuario rol) {
         this.rol = rol;
+    }
+
+
+    public boolean isMfaRequerido() {
+        return mfaRequerido;
+    }
+
+    public void setMfaRequerido(boolean mfaRequerido) {
+        this.mfaRequerido = mfaRequerido;
     }
 }

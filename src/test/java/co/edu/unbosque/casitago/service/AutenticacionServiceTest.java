@@ -334,19 +334,20 @@ class AutenticacionServiceTest {
     // ---------- RF-33: login con MFA ----------
 
     @Test
-    void login_conMfaActivoSinCodigo_enviaCodigoYLanzaExcepcion() {
+    void login_conMfaActivoSinCodigo_enviaCodigoYPideElCodigoSinToken() {
         UUID id = UUID.randomUUID();
         Usuario usuario = usuarioConId(id, "Ana", "ana@example.com", RolUsuario.HUESPED);
         usuario.setMfaHabilitado(true);
         Authentication authentication = new UsernamePasswordAuthenticationToken(usuario, null, usuario.getAuthorities());
         when(authenticationManager.authenticate(any())).thenReturn(authentication);
 
-        assertThatThrownBy(() -> autenticacionService.login(new LoginRequest("ana@example.com", "clave12345")))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Se envió un código de verificación");
+        LoginResponse response = autenticacionService.login(new LoginRequest("ana@example.com", "clave12345"));
 
+        assertThat(response.isMfaRequerido()).isTrue();
+        assertThat(response.getToken()).isNull();
         verify(codigoRecuperacionRepository).save(any(CodigoRecuperacion.class));
         verify(emailService).enviarCodigoMfa(eq("ana@example.com"), eq("Ana"), anyString());
+        verify(auditService).registrar(id, "usuarios", "SOLICITUD_CODIGO_MFA", "EXITOSO");
         verify(jwtService, never()).generarToken(any(), any(), any());
     }
 
