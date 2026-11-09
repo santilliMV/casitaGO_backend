@@ -17,6 +17,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.http.HttpMethod;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import jakarta.servlet.DispatcherType;
 
 import java.util.List;
 
@@ -70,6 +71,7 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        .dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll()
                         .requestMatchers(
                                 "/api/auth/registro",
                                 "/api/auth/login",

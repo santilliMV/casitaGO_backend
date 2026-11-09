@@ -6,6 +6,7 @@ import co.edu.unbosque.casitago.entity.Usuario;
 import co.edu.unbosque.casitago.repository.NotificacionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import java.util.Map;
 
 import java.util.List;
 import java.util.UUID;
@@ -17,12 +18,17 @@ public class NotificacionService {
     @Autowired
     private NotificacionRepository notificacionRepository;
 
+    @Autowired
+    private CanalEventosService canalEventosService;
+
     public void crear(Usuario usuario, String tipoEvento, String mensaje) {
         Notificacion notificacion = new Notificacion();
         notificacion.setUsuario(usuario);
         notificacion.setTipoEvento(tipoEvento);
         notificacion.setMensaje(mensaje);
         notificacionRepository.save(notificacion);
+        canalEventosService.publicar(usuario.getId(), "notificacion",
+                Map.of("tipoEvento", tipoEvento, "mensaje", mensaje));
     }
 
     public List<NotificacionResponse> listarMisNotificaciones(UUID usuarioId) {
