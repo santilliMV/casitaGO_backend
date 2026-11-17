@@ -41,4 +41,11 @@ class SecurityConfigCorsTest {
         assertNotNull(config.checkOrigin("https://casitago-front.onrender.com"));
         assertNull(config.checkOrigin("https://casitago.vercel.app"));
     }
+
+    @Test
+    void cors_ignoraEntradasVacias_comoUnaComaAlFinal() {
+        CorsConfiguration config = configuracionCon(List.of("https://casitago.onrender.com", "  ", ""));
+
+        assertEquals(List.of("https://casitago.onrender.com"), config.getAllowedOriginPatterns());
+    }
 }
