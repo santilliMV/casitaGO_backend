@@ -3,7 +3,7 @@ package co.edu.unbosque.casitago.entity;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "resenas")
+@Table(name = "resena")
 public class Resena extends EntidadRegistrada {
 
     @ManyToOne

@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "publicaciones")
+@Table(name = "publicacion")
 public class Publicacion {
 
     @Id

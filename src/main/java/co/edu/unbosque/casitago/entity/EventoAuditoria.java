@@ -15,7 +15,7 @@ import java.util.UUID;
  * convención de estructura plana por capa del proyecto.
  */
 @Entity
-@Table(name = "eventos_auditoria")
+@Table(name = "evento_auditoria")
 public class EventoAuditoria {
 
     @Id
