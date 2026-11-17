@@ -7,10 +7,12 @@ import com.stripe.net.RequestOptions;
 import com.stripe.param.PaymentIntentCreateParams;
 import com.stripe.param.RefundCreateParams;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import java.math.BigDecimal;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -79,14 +81,19 @@ class PasarelaPagoStripeTest {
     }
 
     @Test
-    void reembolsar_conStripeDisponible_noLanzaError() {
+    void reembolsar_conStripeDisponible_enviaElCobroYElMontoEnCentavos() {
         Refund reembolso = mock(Refund.class);
+        ArgumentCaptor<RefundCreateParams> parametros = ArgumentCaptor.forClass(RefundCreateParams.class);
 
         try (MockedStatic<Refund> stripe = mockStatic(Refund.class)) {
             stripe.when(() -> Refund.create(any(RefundCreateParams.class), any(RequestOptions.class)))
                     .thenReturn(reembolso);
 
-            pasarela.reembolsar("pi_123", new BigDecimal("150.50"));
+            assertDoesNotThrow(() -> pasarela.reembolsar("pi_123", new BigDecimal("150.50")));
+
+            stripe.verify(() -> Refund.create(parametros.capture(), any(RequestOptions.class)));
+            assertEquals("pi_123", parametros.getValue().getPaymentIntent());
+            assertEquals(15050L, parametros.getValue().getAmount());
         }
     }
 
