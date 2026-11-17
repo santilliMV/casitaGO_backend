@@ -82,6 +82,7 @@ public class ReservaService {
         validarQuienReserva(publicacion, huesped);
 
         validarPublicacionYFechas(publicacion, request.getFechaLlegada(), request.getFechaSalida());
+        validarCotizacionVigente(cotizacion, request.getFechaLlegada(), request.getFechaSalida());
 
         // RF-35: la reserva queda PENDIENTE hasta que el pago se apruebe (ver PagoService.pagar).
         Reserva reserva = new Reserva();
@@ -167,6 +168,23 @@ public class ReservaService {
             throw new RuntimeException("La fecha de salida debe ser posterior a la fecha de llegada");
         }
         verificarDisponibilidad(publicacion.getId(), llegada, salida);
+    }
+
+    /**
+     * La reserva se cobra con el total de la cotización, así que la cotización debe
+     * corresponder a lo que se está reservando: mismas noches y mismo precio por noche.
+     * Evita cotizar pocas noches y reservar más pagando lo cotizado, o reservar con un
+     * precio que el anfitrión ya cambió.
+     */
+    private void validarCotizacionVigente(Cotizacion cotizacion, LocalDate llegada, LocalDate salida) {
+        long noches = ChronoUnit.DAYS.between(llegada, salida);
+        if (cotizacion.getNoches() == null || cotizacion.getNoches() != noches) {
+            throw new RuntimeException("Las fechas no coinciden con la cotización, vuelve a cotizar");
+        }
+        BigDecimal precioBaseActual = cotizacion.getPublicacion().getPrecioNoche().multiply(BigDecimal.valueOf(noches));
+        if (cotizacion.getPrecioBase() == null || cotizacion.getPrecioBase().compareTo(precioBaseActual) != 0) {
+            throw new RuntimeException("El precio del alojamiento cambió, vuelve a cotizar");
+        }
     }
 
     private void verificarDisponibilidad(UUID publicacionId, LocalDate inicio, LocalDate fin) {

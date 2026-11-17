@@ -320,6 +320,50 @@ class ReservaServiceTest {
         assertThrows(RuntimeException.class, () -> reservaService.crearReserva(request, huesped));
     }
 
+    @Test
+    void crearReserva_conMasNochesQueLasCotizadas_deberiaLanzarExcepcion() {
+        Publicacion publicacion = publicacionActiva();
+        Cotizacion cotizacion = cotizacionExistente(publicacion); // cotizada por 3 noches
+        LocalDate salidaMasLarga = llegada.plusDays(10);
+        when(reservaRepository.findByIdempotencyKey(any())).thenReturn(Optional.empty());
+        when(cotizacionRepository.findById(cotizacion.getId())).thenReturn(Optional.of(cotizacion));
+        when(periodoDisponibilidadRepository.buscarSolapados(publicacion.getId(), llegada, salidaMasLarga)).thenReturn(List.of());
+        when(reservaRepository.buscarSolapadas(publicacion.getId(), llegada, salidaMasLarga)).thenReturn(List.of());
+
+        ReservaRequest request = new ReservaRequest();
+        request.setCotizacionId(cotizacion.getId());
+        request.setFechaLlegada(llegada);
+        request.setFechaSalida(salidaMasLarga);
+
+        RuntimeException ex = assertThrows(RuntimeException.class,
+                () -> reservaService.crearReserva(request, huesped));
+
+        assertEquals("Las fechas no coinciden con la cotización, vuelve a cotizar", ex.getMessage());
+        verify(reservaRepository, never()).save(any());
+    }
+
+    @Test
+    void crearReserva_siElPrecioCambioDespuesDeCotizar_deberiaLanzarExcepcion() {
+        Publicacion publicacion = publicacionActiva();
+        Cotizacion cotizacion = cotizacionExistente(publicacion); // cotizada a 100.000 por noche
+        publicacion.setPrecioNoche(new BigDecimal("150000"));
+        when(reservaRepository.findByIdempotencyKey(any())).thenReturn(Optional.empty());
+        when(cotizacionRepository.findById(cotizacion.getId())).thenReturn(Optional.of(cotizacion));
+        when(periodoDisponibilidadRepository.buscarSolapados(publicacion.getId(), llegada, salida)).thenReturn(List.of());
+        when(reservaRepository.buscarSolapadas(publicacion.getId(), llegada, salida)).thenReturn(List.of());
+
+        ReservaRequest request = new ReservaRequest();
+        request.setCotizacionId(cotizacion.getId());
+        request.setFechaLlegada(llegada);
+        request.setFechaSalida(salida);
+
+        RuntimeException ex = assertThrows(RuntimeException.class,
+                () -> reservaService.crearReserva(request, huesped));
+
+        assertEquals("El precio del alojamiento cambió, vuelve a cotizar", ex.getMessage());
+        verify(reservaRepository, never()).save(any());
+    }
+
     // ---------- RF-19: listar historial ----------
 
     @Test
