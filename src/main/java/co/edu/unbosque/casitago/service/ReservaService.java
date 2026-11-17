@@ -179,11 +179,11 @@ public class ReservaService {
     private void validarCotizacionVigente(Cotizacion cotizacion, LocalDate llegada, LocalDate salida) {
         long noches = ChronoUnit.DAYS.between(llegada, salida);
         if (cotizacion.getNoches() == null || cotizacion.getNoches() != noches) {
-            throw new RuntimeException("Las fechas no coinciden con la cotización, vuelve a cotizar");
+            throw new IllegalStateException("Las fechas no coinciden con la cotización, vuelve a cotizar");
         }
         BigDecimal precioBaseActual = cotizacion.getPublicacion().getPrecioNoche().multiply(BigDecimal.valueOf(noches));
         if (cotizacion.getPrecioBase() == null || cotizacion.getPrecioBase().compareTo(precioBaseActual) != 0) {
-            throw new RuntimeException("El precio del alojamiento cambió, vuelve a cotizar");
+            throw new IllegalStateException("El precio del alojamiento cambió, vuelve a cotizar");
         }
     }
 
