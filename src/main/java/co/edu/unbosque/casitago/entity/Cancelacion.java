@@ -7,7 +7,7 @@ import org.hibernate.type.SqlTypes;
 import java.math.BigDecimal;
 
 @Entity
-@Table(name = "cancelaciones")
+@Table(name = "cancelacion")
 public class Cancelacion extends EntidadRegistrada {
 
     @ManyToOne

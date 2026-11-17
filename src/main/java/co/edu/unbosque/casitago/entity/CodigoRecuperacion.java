@@ -9,7 +9,7 @@ import java.util.UUID;
  * Tabla `codigos_recuperacion` — RF-03.
  */
 @Entity
-@Table(name = "codigos_recuperacion")
+@Table(name = "codigo_recuperacion")
 public class CodigoRecuperacion {
 
     @Id

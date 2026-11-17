@@ -5,7 +5,7 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 
 @Entity
-@Table(name = "cotizaciones")
+@Table(name = "cotizacion")
 public class Cotizacion extends EntidadRegistrada {
 
     @ManyToOne

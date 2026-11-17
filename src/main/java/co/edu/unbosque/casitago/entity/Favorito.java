@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "favoritos")
+@Table(name = "favorito")
 public class Favorito {
 
     @Id

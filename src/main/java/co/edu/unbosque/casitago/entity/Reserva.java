@@ -7,7 +7,7 @@ import org.hibernate.type.SqlTypes;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "reservas")
+@Table(name = "reserva")
 public class Reserva extends EntidadRegistrada {
 
     @ManyToOne
