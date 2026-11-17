@@ -1,5 +1,6 @@
 package co.edu.unbosque.casitago.service;
 
+import co.edu.unbosque.casitago.common.audit.AuditService;
 import co.edu.unbosque.casitago.dto.CancelacionRequest;
 import co.edu.unbosque.casitago.dto.CancelacionResponse;
 import co.edu.unbosque.casitago.dto.CotizacionRequest;
@@ -31,6 +32,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -59,6 +61,9 @@ class ReservaServiceTest {
 
     @Mock
     private PagoService pagoService;
+
+    @Mock
+    private AuditService auditService;
 
     private Usuario huesped;
     private Usuario anfitrion;
@@ -242,6 +247,27 @@ class ReservaServiceTest {
         assertEquals(EstadoReserva.PENDIENTE, response.getEstado());
         assertEquals(0, cotizacion.getTotal().compareTo(response.getTotal()));
         verifyNoInteractions(notificacionService);
+        verify(auditService).registrar(eq(huesped.getId()), eq("reservas"), eq("CREAR_RESERVA"), eq("EXITOSO"), anyMap());
+    }
+
+    @Test
+    void crearReserva_siOtraReservaGanaLaCarrera_deberiaAuditarFallo() {
+        Publicacion publicacion = publicacionActiva();
+        Cotizacion cotizacion = cotizacionExistente(publicacion);
+        when(reservaRepository.findByIdempotencyKey(any())).thenReturn(Optional.empty());
+        when(cotizacionRepository.findById(cotizacion.getId())).thenReturn(Optional.of(cotizacion));
+        when(periodoDisponibilidadRepository.buscarSolapados(publicacion.getId(), llegada, salida)).thenReturn(List.of());
+        when(reservaRepository.buscarSolapadas(publicacion.getId(), llegada, salida)).thenReturn(List.of());
+        when(reservaRepository.save(any(Reserva.class))).thenThrow(new RuntimeException("violación de restricción"));
+
+        ReservaRequest request = new ReservaRequest();
+        request.setCotizacionId(cotizacion.getId());
+        request.setFechaLlegada(llegada);
+        request.setFechaSalida(salida);
+
+        assertThrows(RuntimeException.class, () -> reservaService.crearReserva(request, huesped));
+
+        verify(auditService).registrar(eq(huesped.getId()), eq("reservas"), eq("CREAR_RESERVA"), eq("FALLIDO"), anyMap());
     }
 
     @Test
@@ -364,6 +390,7 @@ class ReservaServiceTest {
         verify(notificacionService).crear(eq(huesped), eq("RESERVA_CANCELADA"), anyString());
         verify(notificacionService).crear(eq(anfitrion), eq("RESERVA_CANCELADA"), anyString());
         verify(pagoService).reembolsarSiCorresponde(eq(reserva), any(BigDecimal.class), eq(huesped.getId()));
+        verify(auditService).registrar(eq(huesped.getId()), eq("reservas"), eq("CANCELAR_RESERVA"), eq("EXITOSO"), anyMap());
     }
 
     @Test

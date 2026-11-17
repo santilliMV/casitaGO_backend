@@ -1,5 +1,6 @@
 package co.edu.unbosque.casitago.service;
 
+import co.edu.unbosque.casitago.common.audit.AuditService;
 import co.edu.unbosque.casitago.dto.DashboardResponse;
 import co.edu.unbosque.casitago.entity.EstadoPublicacion;
 import co.edu.unbosque.casitago.entity.EstadoReserva;
@@ -25,6 +26,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -39,6 +41,9 @@ class ReporteServiceTest {
 
     @Mock
     private ReservaRepository reservaRepository;
+
+    @Mock
+    private AuditService auditService;
 
     @InjectMocks
     private ReporteService reporteService;
@@ -121,6 +126,7 @@ class ReporteServiceTest {
         assertNotNull(pdf);
         assertTrue(pdf.length > 100);
         assertEquals("%PDF", new String(pdf, 0, 4, StandardCharsets.US_ASCII));
+        verify(auditService).registrar(eq(admin.getId()), eq("reportes"), eq("EXPORTAR_REPORTE_GESTION"), eq("EXITOSO"), anyMap());
     }
 
     @Test
@@ -129,5 +135,6 @@ class ReporteServiceTest {
                 () -> reporteService.generarReportePdf(anfitrion));
 
         assertEquals("Solo un ADMINISTRADOR puede realizar esta acción", ex.getMessage());
+        verifyNoInteractions(auditService);
     }
 }

@@ -1,5 +1,6 @@
 package co.edu.unbosque.casitago.service;
 
+import co.edu.unbosque.casitago.common.audit.AuditService;
 import co.edu.unbosque.casitago.dto.*;
 import co.edu.unbosque.casitago.entity.*;
 import co.edu.unbosque.casitago.repository.*;
@@ -10,6 +11,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -19,6 +21,9 @@ public class ReservaService {
     private static final BigDecimal TARIFA_LIMPIEZA_FIJA = new BigDecimal("25000");
     private static final BigDecimal PORCENTAJE_TARIFA_SERVICIO = new BigDecimal("0.05");
     private static final int DIAS_LIMITE_CANCELACION = 3;
+    private static final String ENTIDAD_RESERVAS = "reservas";
+    private static final String RESERVA_ID = "reservaId";
+    private static final String PUBLICACION_ID = "publicacionId";
     @Autowired
     private PagoService pagoService;
 
@@ -39,6 +44,9 @@ public class ReservaService {
 
     @Autowired
     private NotificacionService notificacionService;
+
+    @Autowired
+    private AuditService auditService;
 
     public CotizacionResponse generarCotizacion(CotizacionRequest request, Usuario usuario) {
         Publicacion publicacion = publicacionRepository.findById(request.getPublicacionId())
@@ -96,8 +104,17 @@ public class ReservaService {
         try {
             reserva = reservaRepository.save(reserva);
         } catch (RuntimeException e) {
+            auditService.registrar(huesped.getId(), ENTIDAD_RESERVAS, "CREAR_RESERVA", "FALLIDO",
+                    Map.of(PUBLICACION_ID, publicacion.getId().toString(),
+                            "motivo", "Fechas ocupadas al confirmar"));
             throw new RuntimeException("Las fechas ya no están disponibles, alguien más reservó primero");
         }
+
+        auditService.registrar(huesped.getId(), ENTIDAD_RESERVAS, "CREAR_RESERVA", "EXITOSO",
+                Map.of(RESERVA_ID, reserva.getId().toString(),
+                        PUBLICACION_ID, publicacion.getId().toString(),
+                        "fechaLlegada", reserva.getFechaLlegada().toString(),
+                        "fechaSalida", reserva.getFechaSalida().toString()));
 
         return ReservaResponse.desde(reserva);
     }
@@ -147,6 +164,11 @@ public class ReservaService {
         cancelacion.setEstadoFinal(EstadoReserva.CANCELADA);
 
         cancelacion = cancelacionRepository.save(cancelacion);
+
+        auditService.registrar(usuario.getId(), ENTIDAD_RESERVAS, "CANCELAR_RESERVA", "EXITOSO",
+                Map.of(RESERVA_ID, reserva.getId().toString(),
+                        "motivo", String.valueOf(request.getMotivo()),
+                        "valorDevolucion", valorDevolucion.toPlainString()));
 
         Publicacion publicacion = reserva.getPublicacion();
         String detalle = "\"" + publicacion.getTitulo() + "\" del "

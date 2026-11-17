@@ -1,5 +1,6 @@
 package co.edu.unbosque.casitago.service;
 
+import co.edu.unbosque.casitago.common.audit.AuditService;
 import co.edu.unbosque.casitago.dto.DashboardResponse;
 import co.edu.unbosque.casitago.dto.DemandaCiudadResponse;
 import co.edu.unbosque.casitago.entity.EstadoPublicacion;
@@ -52,6 +53,9 @@ public class ReporteService {
 
     @Autowired
     private ReservaRepository reservaRepository;
+
+    @Autowired
+    private AuditService auditService;
 
     // ---------- RF-27: dashboard ----------
     public DashboardResponse obtenerDashboard(Usuario admin) {
@@ -136,8 +140,14 @@ public class ReporteService {
 
             documento.close();
         } catch (DocumentException e) {
+            auditService.registrar(admin.getId(), "reportes", "EXPORTAR_REPORTE_GESTION", "FALLIDO",
+                    Map.of("formato", "PDF", "motivo", String.valueOf(e.getMessage())));
             throw new RuntimeException("No se pudo generar el reporte PDF");
         }
+
+        // Regla de negocio: los reportes exportados registran quién los solicitó y cuándo (la fecha la pone EventoAuditoria).
+        auditService.registrar(admin.getId(), "reportes", "EXPORTAR_REPORTE_GESTION", "EXITOSO",
+                Map.of("formato", "PDF"));
 
         return salida.toByteArray();
     }
